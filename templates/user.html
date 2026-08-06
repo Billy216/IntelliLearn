@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>个人页面</title>
+    <link rel="stylesheet" href="/static/css/user.css">
+</head>
+
+<body>
+    <div class="bg-decoration"></div>
+
+    <div class="container">
+        <h1>个人中心</h1>
+        <p class="subtitle">管理您的个人信息</p>
+
+        <div class="avatar-wrapper">
+            <img id="user-avatar" src="/static/pic/userAvatar.png" alt="用户头像">
+            <div class="avatar-overlay" id="avatar-overlay">
+                <span class="camera-icon">📷</span>
+                <span>更换头像</span>
+            </div>
+        </div>
+        <input type="file" id="avatar-input" accept="image/*" style="display: none;">
+
+        <div class="user-info">
+            <div class="info-item">
+                <span class="info-label">学号</span>
+                <span class="info-value">{{user_name}}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">姓名</span>
+                <span class="info-value">{{user_real_name}}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">角色</span>
+                <span class="info-value">学生</span>
+            </div>
+        </div>
+
+        <div class="button-group">
+            <button class="btn-primary" onclick="window.location.href='/password'">
+                <span class="btn-icon">🔒</span>
+                更改密码
+            </button>
+            <button class="btn-secondary" onclick="window.location.href='/home'">
+                <span class="btn-icon">🏠</span>
+                返回主页
+            </button>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script src="/static/js/user.js"></script>
+</body>
+
+</html>

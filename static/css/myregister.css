@@ -1,0 +1,146 @@
+.content{
+    height: calc(100vh - 67px);
+    width: 100%;
+    margin-top: 2px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    overflow: auto;
+}
+
+.title{
+    text-align: center;
+    line-height: 40px;
+    margin-top: 40px;
+    font-size: 40px;
+    font-weight: 700;
+}
+
+.row {
+    display: flex;
+    gap: 25px;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    padding: 45px 50px 45px;
+}
+
+.card {
+    flex-grow: 1; /* 卡片在空间中可以扩展 */
+    flex-shrink: 1; /* 卡片可以缩小 */
+    flex-basis: 300px; /* 设置卡片的初始宽度为300px */
+    max-width: 515px; /* 卡片的最大宽度 */
+    min-width: 420px; /* 卡片的最小宽度 */
+    height: 300px;
+    background-color: rgba(255, 255, 255, 0.5);
+    backdrop-filter: blur(50px);
+    border-radius: 14px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    padding: 25px 35px 25px;
+    transition: all .5s;
+    display: flex;
+    flex-direction: column;
+}
+
+.card:hover{
+    flex-grow: 1; /* 卡片在空间中可以扩展 */
+    flex-shrink: 1; /* 卡片可以缩小 */
+    flex-basis: 300px; /* 设置卡片的初始宽度为300px */
+    max-width: 515px; /* 卡片的最大宽度 */
+    min-width: 420px; /* 卡片的最小宽度 */
+    height: 300px;
+    background-color: rgba(255, 255, 255, 0.5);
+    backdrop-filter: blur(50px);
+    border-radius: 14px;
+    box-shadow: 0 60px 120px rgba(0, 0, 0, 0.15);
+    padding: 25px 35px 25px;
+}
+
+.card > * {
+    flex: 1; /* 使所有直接子元素平均分配空间 */
+    margin: 0 0; /* 添加一些间距，可根据需要调整 */
+}
+
+.time{
+    margin-top: 30px;
+}
+
+.card h2 {
+    flex: none; /* 标题可能不需要平均分配 */
+    margin: 0 0 10px 0; /* 调整标题的间距 */
+}
+
+.card > h2::after{
+    content: ""; /* 必须设置，即使不需要添加实际内容 */
+    display: block; /* 将伪元素转换为块级元素 */
+    height: 2px; /* 设置线的高度 */
+    width: 100px;
+    background-color: #9e62c1; /* 设置线的颜色 */
+    margin-top: 5px; /* 设置线与元素之间的距离 */
+}
+
+.sp{
+    display: flex;
+    white-space: nowrap;
+}
+
+.describe{
+    display: inline-block;
+    flex-grow: 1; /* 自动填充剩余空间 */
+    max-width: 100%; /* 限制宽度不超过父容器 */
+    overflow: hidden; /* 超出部分隐藏 */
+    white-space: nowrap; /* 禁止换行 */
+    text-overflow: ellipsis; /* 超出部分显示省略号 */
+}
+
+.page_ch {
+    text-align: center; /* 水平居中 */
+    margin-bottom: 20px;
+    bottom: 0px;
+}
+
+.page_btn {
+    display: flex;
+    justify-content: center; /* 垂直居中 */
+    align-items: center; /* 垂直居中 */
+}
+
+.page_btn > *{
+    width: 50px;
+    height: 45px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    font-weight: bold;
+    color: #9e62c1;
+    background-color: transparent;
+    border: 2px solid #9e62c1;
+    border-radius: 14px;
+    margin-right: 8px;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.page_btn > *:hover{
+    color: #ffffff;
+    background-color: #9e62c1;
+}
+
+.active{
+    color: #ffffff;
+    background-color: #9e62c1;
+}
+
+/* 当屏幕宽度小于515px时调整卡片大小 */
+@media (max-width: 515px) {
+    .card {
+        flex-basis: calc(33.33% - 25px); /* 让每个卡片宽度适应3个卡片在一行 */
+    }
+}
+
+/* 当屏幕宽度小于410px时，让卡片占据整个行 */
+@media (max-width: 420px) {
+    .card {
+        flex-basis: 100%; /* 每个卡片在一行中占满100%的宽度 */
+    }
+}
