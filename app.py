@@ -4,9 +4,9 @@ import bcrypt
 
 app = Flask(__name__)
 
-app.secret_key = '123456'  # 务必换成随机字符串，生产环境使用环境变量123456000
+app.secret_key = '123456'  # 务必换成随机字符串，生产环境使用环境变量12345678
 
-# 创建数据库连接函数
+# 创建数据库连接函数23
 def connect_db():
     return pymysql.connect(
         host='127.0.0.1', # 数据库主机地址
