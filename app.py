@@ -4,7 +4,7 @@ import bcrypt
 
 app = Flask(__name__)
 
-app.secret_key = '123456'  # 务必换成随机字符串，生产环境使用环境变量
+app.secret_key = '123456'  # 务必换成随机字符串，生产环境使用环境变量1234
 
 # 创建数据库连接函数
 def connect_db():
