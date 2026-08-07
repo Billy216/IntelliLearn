@@ -171,12 +171,12 @@ def password():
         return redirect('/login')
     return render_template('password.html')
 
-@app.route('/publish')
-def publish():
+@app.route('/errors_register')
+def errors_register():
     if 'username' not in session:
         return redirect('/login')
     username = session.get('username')
-    return render_template('publish.html', username=username)
+    return render_template('errors_register.html', username=username)
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
