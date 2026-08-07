@@ -43,10 +43,6 @@ body {
     transition: transform 0.25s ease;
 }
 
-.container:hover {
-    transform: translateY(-2px);
-}
-
 h1 {
     font-size: 28px;
     font-weight: 700;
@@ -126,31 +122,59 @@ h1 {
     margin-bottom: 28px;
     border: 1px solid rgba(226, 232, 240, 0.5);
 }
-
+.btn-danger {
+    background: #dc3545;
+    color: white;
+    border: none;
+    padding: 12px 28px;
+    border-radius: 30px;
+    font-size: 16px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: background 0.2s;
+}
+.btn-danger:hover {
+    background: #c82333;
+}
 .info-item {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
+    align-items: center;          /* 垂直居中 */
     padding: 10px 0;
     border-bottom: 1px solid rgba(226, 232, 240, 0.5);
+    min-height: 44px;
 }
 
 .info-item:last-child {
     border-bottom: none;
 }
 
+/* 标签：占左半边的后 30%（总宽 15%），从总宽的 35% 处开始 */
 .info-label {
+    flex: 0 0 30%;               /* 固定宽度 15% */
+    margin-left: 20%;            /* 推到 35% 起始位置 */
+    text-align: center;          /* 文字在 15% 宽度内居中 */
     font-size: 14px;
     color: #64748b;
     font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;     /* 内容过长显示省略号，防止撑破布局 */
 }
 
+/* 数值：占右半边的前 30%（总宽 15%），从总宽的 50% 处开始，结束于 65% */
 .info-value {
+    flex: 0 0 30%;               /* 固定宽度 15% */
+    margin-right: 20%;           /* 右侧留出 35% 空白（100% - 50% - 15% = 35%） */
+    text-align: center;          /* 文字在 15% 宽度内居中 */
     font-size: 15px;
     color: #0f172a;
     font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
-
 /* ===== 按钮组 ===== */
 .button-group {
     display: flex;
@@ -179,7 +203,34 @@ h1 {
 .btn-icon {
     font-size: 18px;
 }
+.btn-danger {
+    width: 100%;
+    padding: 14px;
+    border: none;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background: #dc3545;
+    color: white;
+    transition: all 0.25s ease;
+    text-decoration: none;
+    letter-spacing: 0.3px;
+}
 
+.btn-danger:hover {
+    background: #c82333;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(220, 53, 69, 0.3);
+}
+
+.btn-danger:active {
+    transform: translateY(0px);
+}
 /* 主要按钮 */
 .btn-primary {
     background: #a996ff;
