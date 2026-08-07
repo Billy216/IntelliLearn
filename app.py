@@ -4,9 +4,9 @@ import bcrypt
 
 app = Flask(__name__)
 
-app.secret_key = '123456'  # 务必换成随机字符串，生产环境使用环境变量12345678
+app.secret_key = '123456'  # 务必换成随机字符串，生产环境使用环境变量
 
-# 创建数据库连接函数23
+# 创建数据库连接函数
 def connect_db():
     return pymysql.connect(
         host='127.0.0.1', # 数据库主机地址
@@ -122,6 +122,7 @@ def api_login():
                     session['username'] = username  # 保存用户名
                     session['userid'] = result['id']
                     session['role'] = result['role']  # 保存用户角色
+                    session['real_name'] = result['real_name']
                     return jsonify({'success': True, 'message': f'欢迎回来，{username}！'})
                 else:
                     return jsonify({'success': False, 'message': '账号或密码错误'})
@@ -157,7 +158,12 @@ def exam():
 def user():
     if 'username' not in session:
         return redirect('/login')
-    return render_template('user.html')
+
+    username = session.get('username')
+    role = session.get('role')
+    real_name = session.get('real_name')
+
+    return render_template('user.html', username=username, role=role, real_name=real_name)
 
 @app.route('/password')
 def password():
