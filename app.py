@@ -171,6 +171,67 @@ def password():
         return redirect('/login')
     return render_template('password.html')
 
+@app.route('/api/change_password', methods=['POST'])
+def api_change_password():
+    # 1. 检查登录状态
+    if 'username' not in session:
+        return redirect('/login')
+
+    data = request.get_json()
+    if not data:
+        return jsonify({'success': False, 'message': '无效请求'}), 400
+
+    username = data.get('username')
+    new_password = data.get('new_password')
+
+    # 2. 验证用户名是否与 session 中的一致（防止前端篡改）
+    if username != session.get('username'):
+        return jsonify({'success': False, 'message': '用户信息不匹配'})
+
+    # 3. 后端二次校验密码强度（与前端保持一致）
+    if len(new_password) < 8:
+        return jsonify({'success': False, 'message': '密码长度至少8位'})
+    # 可选：检查是否包含大小写、数字、特殊字符，但前端已做，后端不强制也可，但建议加上
+    # 简单校验
+    if not any(c.islower() for c in new_password) or not any(c.isupper() for c in new_password):
+        return jsonify({'success': False, 'message': '密码需包含大小写字母'})
+    if not any(c.isdigit() for c in new_password):
+        return jsonify({'success': False, 'message': '密码需包含数字'})
+    if not any(not c.isalnum() for c in new_password):
+        return jsonify({'success': False, 'message': '密码需包含特殊字符'})
+
+    # 4. 连接数据库
+    connection = connect_db()
+    try:
+        with connection.cursor() as cursor:
+            # 查询当前用户的密码哈希
+            sql = "SELECT password FROM users WHERE user_no = %s"
+            cursor.execute(sql, (username,))
+            result = cursor.fetchone()
+
+            if not result:
+                return jsonify({'success': False, 'message': '用户不存在'})
+
+            stored_hash = result['password']  # 数据库中存储的哈希（字符串）
+
+            # 5. 检查新密码是否与旧密码相同
+            if bcrypt.checkpw(new_password.encode('utf-8'), stored_hash.encode('utf-8')):
+                return jsonify({'success': False, 'message': '新密码不能与旧密码相同'})
+
+            # 6. 生成新哈希并更新数据库
+            salt = bcrypt.gensalt()
+            hashed_new = bcrypt.hashpw(new_password.encode('utf-8'), salt)
+            update_sql = "UPDATE users SET password = %s WHERE user_no = %s"
+            cursor.execute(update_sql, (hashed_new, username))
+            connection.commit()
+
+            # 7. 修改成功，清空 session 强制重新登录（增强安全性）
+            session.clear()
+            return jsonify({'success': True, 'message': '密码修改成功，请重新登录'})
+
+    finally:
+        connection.close()
+
 @app.route('/publish')
 def publish():
     if 'username' not in session:
