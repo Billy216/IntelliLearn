@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 对话</title>
+    <link rel="icon" href="/static/pic/logo.png">
+    <link rel="stylesheet" href="/static/css/home.css">
+    <link rel="stylesheet" href="/static/css/chat.css">
+</head>
+<body>
+    <div class="main">
+        <!-- 顶部导航（完全复用 home） -->
+        <div class="top_nav">
+            <a href="/home">
+                <div class="logo">
+                    <img src="/static/pic/logo.png" alt="">
+                    <span>SAMS</span>
+                </div>
+            </a>
+            <nav>
+                <img src="/static/pic/userAvatar.png" alt="" class="img">
+                <a href="/user" class="nav-link">{{ username }}</a>
+                <a href="/home" class="nav-link" style="margin-left: 16px;">返回主页</a>
+            </nav>
+        </div>
+
+        <!-- 内容区域：无侧边栏，直接放置聊天组件 -->
+        <div class="container chat-container">
+            <div class="messages" id="messagesContainer"></div>
+            <div class="input-area">
+                <input type="text" id="messageInput" placeholder="输入消息..." />
+                <button id="sendBtn" class="btn-upload">发送</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/chat.js"></script>
+</body>
+</html>
