@@ -1,8 +1,8 @@
--- MySQL dump 10.13  Distrib 8.0.38, for Win64 (x86_64)
+-- MySQL dump 10.13  Distrib 8.0.46, for Win64 (x86_64)
 --
 -- Host: localhost    Database: intellilearn_test
 -- ------------------------------------------------------
--- Server version	8.0.39
+-- Server version	8.4.11
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
@@ -31,6 +31,7 @@ CREATE TABLE `users` (
   `email` varchar(100) DEFAULT NULL COMMENT '学校邮箱，用于登录和找回密码',
   `real_name` varchar(50) DEFAULT NULL COMMENT '真实姓名(可选)',
   `status` tinyint DEFAULT '1' COMMENT '状态：1-正常，0-冻结',
+  `avatar_path` varchar(255) DEFAULT NULL,
   `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
   `updated_at` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
@@ -46,7 +47,7 @@ CREATE TABLE `users` (
 
 LOCK TABLES `users` WRITE;
 /*!40000 ALTER TABLE `users` DISABLE KEYS */;
-INSERT INTO `users` VALUES (2,'student','f25016621','$2b$12$FmaeVQJ/btGGQCUKmrgkH.MufweWtCmSJrB0U7.fOSEdynCu6sgDO','信息科学与技术',NULL,'石昊天',1,'2026-08-06 16:35:36','2026-08-07 17:27:05');
+INSERT INTO `users` VALUES (2,'student','f25016621','$2b$12$FmaeVQJ/btGGQCUKmrgkH.MufweWtCmSJrB0U7.fOSEdynCu6sgDO','信息科学与技术',NULL,'石昊天',1,'/static/avatars/1786172168_JPG','2026-08-06 16:35:36','2026-08-08 14:56:08');
 /*!40000 ALTER TABLE `users` ENABLE KEYS */;
 UNLOCK TABLES;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
@@ -59,4 +60,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-08-07 17:31:35
+-- Dump completed on 2026-08-08 15:02:46
