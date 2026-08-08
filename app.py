@@ -1,6 +1,9 @@
-from flask import Flask, request, jsonify, render_template, session, redirect, url_for
+from flask import Flask, request, jsonify, render_template, session, redirect, url_for, current_app
 import pymysql.cursors
 import bcrypt
+import os
+from werkzeug.utils import secure_filename
+import time
 
 app = Flask(__name__)
 
@@ -123,6 +126,7 @@ def api_login():
                     session['userid'] = result['id']
                     session['role'] = result['role']  # 保存用户角色
                     session['real_name'] = result['real_name']
+                    session['avatar_path'] = result['avatar_path']
                     return jsonify({'success': True, 'message': f'欢迎回来，{username}！'})
                 else:
                     return jsonify({'success': False, 'message': '账号或密码错误'})
@@ -138,6 +142,7 @@ def logout():
     session.pop('username', None)
     session.pop('userid', None)
     session.pop('role', None)
+    session.pop('avatar_path', None)
     return redirect('/login')
 
 @app.route('/home')
@@ -145,14 +150,22 @@ def home():
     if 'username' not in session:
         return redirect('/login')
     username = session.get('username')
-    return render_template('home.html', username=username)
+    avatar_path = session.get('avatar_path')
+    # 如果 session 中没有头像路径，使用默认
+    if not avatar_path:
+        avatar_path = '/static/pic/userAvatar.png'
+    return render_template('home.html', username=username, avatar_path=avatar_path)
 
 @app.route('/exam')
 def exam():
     if 'username' not in session:
         return redirect('/login')
     username = session.get('username')
-    return render_template('exam.html', username=username)
+    avatar_path = session.get('avatar_path')
+    # 如果 session 中没有头像路径，使用默认
+    if not avatar_path:
+        avatar_path = '/static/pic/userAvatar.png'
+    return render_template('exam.html', username=username, avatar_path=avatar_path)
 
 @app.route('/user')
 def user():
@@ -163,7 +176,97 @@ def user():
     role = session.get('role')
     real_name = session.get('real_name')
 
-    return render_template('user.html', username=username, role=role, real_name=real_name)
+    # 查询头像路径
+    avatar_path = None
+    connection = connect_db()
+    try:
+        with connection.cursor() as cursor:
+            sql = "SELECT avatar_path FROM users WHERE user_no = %s"
+            cursor.execute(sql, (username,))
+            result = cursor.fetchone()
+            if result:
+                avatar_path = result.get('avatar_path')
+    finally:
+        connection.close()
+
+    # 如果没有头像，使用默认头像
+    if not avatar_path:
+        avatar_path = '/static/pic/userAvatar.png'
+
+    return render_template('user.html', username=username, role=role, real_name=real_name, avatar_path=avatar_path)
+
+# 配置上传文件夹和允许的扩展名
+UPLOAD_FOLDER = 'static/avatars'
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+
+# 确保目录存在
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+@app.route('/upload_avatar', methods=['POST'])
+def upload_avatar():
+    if 'username' not in session:
+        return jsonify({'success': False, 'message': '请先登录'}), 401
+
+    if 'avatar' not in request.files:
+        return jsonify({'success': False, 'message': '没有上传文件'}), 400
+
+    file = request.files['avatar']
+    if file.filename == '':
+        return jsonify({'success': False, 'message': '未选择文件'}), 400
+
+    if not allowed_file(file.filename):
+        return jsonify({'success': False, 'message': '不支持的文件格式'}), 400
+
+    username = session['username']
+    connection = connect_db()
+
+    try:
+        # 1. 查询旧头像路径（用于后续删除）
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT avatar_path FROM users WHERE user_no = %s", (username,))
+            old = cursor.fetchone()
+            old_avatar_path = old['avatar_path'] if old else None
+
+        # 2. 保存新文件
+        filename = secure_filename(file.filename)
+        timestamp = int(time.time())
+        unique_name = f"{timestamp}_{filename}"
+        # 使用 current_app.config 或直接定义 UPLOAD_FOLDER
+        upload_folder = current_app.config.get('UPLOAD_FOLDER', 'static/avatars')
+        filepath = os.path.join(upload_folder, unique_name)
+        file.save(filepath)
+        avatar_url = f"/{upload_folder}/{unique_name}"
+
+        # 3. 删除旧头像文件（如果存在且不是默认头像）
+        if old_avatar_path:
+            # 将 URL 转成文件系统路径（去掉开头的 '/' 并拼接根路径）
+            old_file_path = os.path.join(current_app.root_path, old_avatar_path.lstrip('/'))
+            # 判断文件是否存在，并且不是默认头像（可自定义默认头像路径）
+            default_avatar = '/static/pic/userAvatar.png'
+            if old_avatar_path != default_avatar and os.path.exists(old_file_path):
+                os.remove(old_file_path)
+
+        # 4. 更新数据库中的头像路径
+        with connection.cursor() as cursor:
+            sql = "UPDATE users SET avatar_path = %s WHERE user_no = %s"
+            cursor.execute(sql, (avatar_url, username))
+            connection.commit()
+
+        # 更新 session，让当前会话立即生效
+        session['avatar_path'] = avatar_url
+
+        return jsonify({'success': True, 'avatar_path': avatar_url})
+
+    except Exception as e:
+        # 如果出错，尝试删除刚上传的新文件（避免残留）
+        if os.path.exists(filepath):
+            os.remove(filepath)
+        return jsonify({'success': False, 'message': f'上传失败: {str(e)}'}), 500
+    finally:
+        connection.close()
 
 @app.route('/password')
 def password():
@@ -237,7 +340,22 @@ def errors_register():
     if 'username' not in session:
         return redirect('/login')
     username = session.get('username')
-    return render_template('errors_register.html', username=username)
+    avatar_path = session.get('avatar_path')
+    # 如果 session 中没有头像路径，使用默认
+    if not avatar_path:
+        avatar_path = '/static/pic/userAvatar.png'
+    return render_template('errors_register.html', username=username, avatar_path=avatar_path)
+
+@app.route('/chat')
+def chat():
+    if 'username' not in session:
+        return redirect('/login')
+    username = session.get('username')
+    avatar_path = session.get('avatar_path')
+    # 如果 session 中没有头像路径，使用默认
+    if not avatar_path:
+        avatar_path = '/static/pic/userAvatar.png'
+    return render_template('chat.html', username=username, avatar_path=avatar_path)
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
