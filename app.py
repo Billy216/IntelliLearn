@@ -22,6 +22,19 @@ def connect_db():
         cursorclass=pymysql.cursors.DictCursor # 获取字典格式结果
     )
 
+# 配置上传文件夹和允许的扩展名
+UPLOAD_FOLDER = 'static/avatars'
+UPLOAD_FOLDER_HOME = 'static/uploads'
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+
+# 确保目录存在
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+os.makedirs(UPLOAD_FOLDER_HOME, exist_ok=True)
+
+# 校验文件名称合法性
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
 @app.route('/')
 def intellilearn():  # put application's code here
     return render_template('intellilearn.html')
@@ -156,6 +169,31 @@ def home():
         avatar_path = '/static/pic/userAvatar.png'
     return render_template('home.html', username=username, avatar_path=avatar_path)
 
+@app.route('/api/upload_image', methods=['POST'])
+def upload_image():
+    if 'username' not in session:
+        return jsonify({'success': False, 'message': '请先登录'}), 401
+
+    if 'image' not in request.files:
+        return jsonify({'success': False, 'message': '没有上传文件'}), 400
+
+    file = request.files['image']
+    if file.filename == '':
+        return jsonify({'success': False, 'message': '未选择文件'}), 400
+
+    if not allowed_file(file.filename):
+        return jsonify({'success': False, 'message': '不支持的文件格式，仅支持 png、jpg、jpeg、gif、webp'}), 400
+
+    # 保存文件到 static/uploads/
+    filename = secure_filename(file.filename)
+    timestamp = int(time.time())
+    unique_name = f"{timestamp}_{filename}"
+    filepath = os.path.join(UPLOAD_FOLDER_HOME, unique_name)
+    file.save(filepath)
+    image_url = f"/{UPLOAD_FOLDER_HOME}/{unique_name}"
+
+    return jsonify({'success': True, 'image_url': image_url})
+
 @app.route('/exam')
 def exam():
     if 'username' not in session:
@@ -194,16 +232,6 @@ def user():
         avatar_path = '/static/pic/userAvatar.png'
 
     return render_template('user.html', username=username, role=role, real_name=real_name, avatar_path=avatar_path)
-
-# 配置上传文件夹和允许的扩展名
-UPLOAD_FOLDER = 'static/avatars'
-ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
-
-# 确保目录存在
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-
-def allowed_file(filename):
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 @app.route('/upload_avatar', methods=['POST'])
 def upload_avatar():
