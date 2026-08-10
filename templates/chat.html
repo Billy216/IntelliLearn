@@ -10,7 +10,7 @@
 </head>
 <body>
     <div class="main">
-        <!-- 顶部导航（完全复用 home） -->
+        <!-- 顶部导航（与 home 一致，但去掉“返回主页”链接） -->
         <div class="top_nav">
             <a href="/home">
                 <div class="logo">
@@ -21,16 +21,57 @@
             <nav>
                 <img src="{{ avatar_path }}" alt="" class="img">
                 <a href="/user" class="nav-link">{{ username }}</a>
-                <a href="/home" class="nav-link" style="margin-left: 16px;">返回主页</a>
             </nav>
         </div>
 
-        <!-- 内容区域：无侧边栏，直接放置聊天组件 -->
-        <div class="container chat-container">
-            <div class="messages" id="messagesContainer"></div>
-            <div class="input-area">
-                <input type="text" id="messageInput" placeholder="输入消息..." />
-                <button id="sendBtn" class="btn-upload">发送</button>
+        <!-- 内容区域：侧边栏 + 聊天区 -->
+        <div class="container chat-layout">
+            <!-- 侧边栏 -->
+            <div class="chat-sidebar">
+                <!-- 开启新对话 -->
+                <div class="chat-sidebar-item new-chat" id="newChatBtn">
+                    <svg viewBox="0 0 1024 1024" width="20" height="20" style="margin-right: 8px; fill: currentColor;">
+                        <path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64z m192 480H544v160c0 17.7-14.3 32-32 32s-32-14.3-32-32V544H320c-17.7 0-32-14.3-32-32s14.3-32 32-32h160V320c0-17.7 14.3-32 32-32s32 14.3 32 32v160h160c17.7 0 32 14.3 32 32s-14.3 32-32 32z"/>
+                    </svg>
+                    开启新对话
+                </div>
+
+                <!-- 对话列表 -->
+                <div class="chat-sidebar-list" id="conversationList">
+                    <div class="chat-sidebar-item conversation" data-id="1">
+                        <span class="conv-title">数学问题咨询</span>
+                        <span class="conv-preview">关于微积分的疑问...</span>
+                    </div>
+                    <div class="chat-sidebar-item conversation" data-id="2">
+                        <span class="conv-title">物理作业讨论</span>
+                        <span class="conv-preview">牛顿第二定律应用</span>
+                    </div>
+                    <div class="chat-sidebar-item conversation" data-id="3">
+                        <span class="conv-title">代码调试帮助</span>
+                        <span class="conv-preview">Python 报错排查</span>
+                    </div>
+                    <div class="chat-sidebar-item conversation" data-id="4">
+                        <span class="conv-title">英语作文润色</span>
+                        <span class="conv-preview">学术写作建议</span>
+                    </div>
+                </div>
+
+                <!-- 返回主页 -->
+                <div class="chat-sidebar-item back-home" id="backHomeBtn">
+                    <svg viewBox="0 0 1024 1024" width="20" height="20" style="margin-right: 8px; fill: currentColor;">
+                        <path d="M946.56 480.768L533.248 70.656a32 32 0 0 0-44.928 0L75.776 480.768a32 32 0 0 0 44.928 44.928L128 477.44V864c0 17.664 14.336 32 32 32h192c17.664 0 32-14.336 32-32V704c0-17.664 14.336-32 32-32h192c17.664 0 32 14.336 32 32v160c0 17.664 14.336 32 32 32h192c17.664 0 32-14.336 32-32V477.44l7.232 7.232a32 32 0 0 0 44.928-44.928z"/>
+                    </svg>
+                    返回主页
+                </div>
+            </div>
+
+            <!-- 聊天区域 -->
+            <div class="chat-container">
+                <div class="messages" id="messagesContainer"></div>
+                <div class="input-area">
+                    <input type="text" id="messageInput" placeholder="输入消息..." />
+                    <button id="sendBtn" class="btn-upload">发送</button>
+                </div>
             </div>
         </div>
     </div>
