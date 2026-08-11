@@ -1,7 +1,8 @@
 /* ===== 聊天布局容器 ===== */
 .chat-layout {
     display: flex;
-    min-height: calc(100vh - 65px); /* 与 home 一致，减去顶部导航高度 */
+    height: calc(100vh - 65px);
+    overflow: hidden;
     width: 100%;
 }
 
@@ -9,7 +10,7 @@
 .chat-sidebar {
     width: 220px;
     min-width: 220px;
-    height: calc(100vh - 65px);
+    height: 100%;
     background-color: rgba(255, 255, 255, 0.5);
     backdrop-filter: blur(10px);
     box-shadow: 2px 0 4px rgba(0, 0, 0, 0.1);
@@ -36,6 +37,7 @@
     width: 100%;
     text-align: left;
     font-family: inherit;
+    flex-shrink: 0;
 }
 
 .chat-sidebar-item:hover {
@@ -43,7 +45,6 @@
     color: #7c65dd;
 }
 
-/* “开启新对话”特殊样式 */
 .new-chat {
     font-weight: 600;
     color: #9e62c1;
@@ -60,6 +61,26 @@
     flex: 1;
     overflow-y: auto;
     padding: 4px 0;
+    min-height: 0;
+}
+
+/* 自定义滚动条 - 侧边栏 */
+.chat-sidebar::-webkit-scrollbar,
+.chat-sidebar-list::-webkit-scrollbar {
+    width: 4px;
+}
+.chat-sidebar::-webkit-scrollbar-track,
+.chat-sidebar-list::-webkit-scrollbar-track {
+    background: transparent;
+}
+.chat-sidebar::-webkit-scrollbar-thumb,
+.chat-sidebar-list::-webkit-scrollbar-thumb {
+    background: rgba(158, 98, 193, 0.4);
+    border-radius: 10px;
+}
+.chat-sidebar::-webkit-scrollbar-thumb:hover,
+.chat-sidebar-list::-webkit-scrollbar-thumb:hover {
+    background: rgba(158, 98, 193, 0.6);
 }
 
 /* 对话条目 */
@@ -97,6 +118,7 @@
     border-top: 1px solid rgba(200, 200, 200, 0.3);
     color: #64748b;
     font-weight: 500;
+    flex-shrink: 0;
 }
 .back-home:hover {
     background: rgba(158, 98, 193, 0.1);
@@ -108,9 +130,10 @@
     flex: 1;
     display: flex;
     flex-direction: column;
-    min-height: calc(100vh - 65px);
+    height: 100%;
     background: transparent;
     padding: 0;
+    overflow: hidden;
 }
 
 /* ===== 消息区域 ===== */
@@ -123,8 +146,21 @@
     gap: 12px;
     background: transparent;
 }
+.messages::-webkit-scrollbar {
+    width: 4px;
+}
+.messages::-webkit-scrollbar-track {
+    background: transparent;
+}
+.messages::-webkit-scrollbar-thumb {
+    background: rgba(158, 98, 193, 0.3);
+    border-radius: 10px;
+}
+.messages::-webkit-scrollbar-thumb:hover {
+    background: rgba(158, 98, 193, 0.5);
+}
 
-/* 消息气泡样式（沿用原有） */
+/* 消息气泡样式 */
 .message {
     max-width: 75%;
     padding: 12px 16px;
@@ -154,7 +190,7 @@
     display: block;
 }
 
-/* ===== 输入区域 ===== */
+/* ===== 输入区域（固定在底部） ===== */
 .input-area {
     display: flex;
     padding: 16px 30px;
@@ -180,7 +216,6 @@
     border-color: #7c65dd;
 }
 
-/* 发送按钮（复用 home 的 .btn-upload） */
 .btn-upload {
     width: auto;
     padding: 12px 28px;
