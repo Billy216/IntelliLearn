@@ -167,7 +167,18 @@ def home():
     # 如果 session 中没有头像路径，使用默认
     if not avatar_path:
         avatar_path = '/static/pic/userAvatar.png'
-    return render_template('home.html', username=username, avatar_path=avatar_path)
+    return render_template('white.html', username=username, avatar_path=avatar_path)
+
+@app.route('/white')
+def white():
+    if 'username' not in session:
+        return redirect('/login')
+    username = session.get('username')
+    avatar_path = session.get('avatar_path')
+    # 如果 session 中没有头像路径，使用默认
+    if not avatar_path:
+        avatar_path = '/static/pic/userAvatar.png'
+    return render_template('white.html', username=username, avatar_path=avatar_path)
 
 @app.route('/api/upload_image', methods=['POST'])
 def upload_image():

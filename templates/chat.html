@@ -68,10 +68,21 @@
             <!-- 聊天区域 -->
             <div class="chat-container">
                 <div class="messages" id="messagesContainer"></div>
+
+                <!-- 图片预览区（位于输入框上方，选中图片后显示） -->
+                <div class="image-preview-bar" id="imagePreviewBar" style="display:none;">
+                    <div class="image-preview-item">
+                        <img id="previewImage" src="" alt="预览图片" />
+                        <button type="button" class="preview-remove" id="removeImageBtn" title="删除图片">&times;</button>
+                    </div>
+                </div>
+
                 <div class="input-area">
+                    <button type="button" id="attachBtn" class="btn-attach" title="选择图片">+</button>
                     <input type="text" id="messageInput" placeholder="输入消息..." />
                     <button id="sendBtn" class="btn-upload">发送</button>
                 </div>
+                <input type="file" id="imageInput" accept="image/*" style="display:none;" />
             </div>
         </div>
     </div>

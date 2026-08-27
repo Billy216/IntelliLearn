@@ -1,0 +1,129 @@
+/* ===== white.html 首页欢迎装饰 ===== */
+
+/* 右侧内容区定位（复用 home.css 的 .container/.content 布局） */
+.white-content {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 30px;
+}
+
+/* 欢迎卡片 */
+.welcome-card {
+    width: 100%;
+    max-width: 520px;
+    background: rgba(255, 255, 255, 0.75);
+    backdrop-filter: blur(20px);
+    border-radius: 28px;
+    padding: 48px 44px;
+    box-shadow: 0 20px 60px rgba(158, 98, 193, 0.25);
+    text-align: center;
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    animation: float-in 0.6s ease-out both;
+}
+
+@keyframes float-in {
+    from {
+        opacity: 0;
+        transform: translateY(24px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.welcome-emoji {
+    font-size: 72px;
+    line-height: 1;
+    margin-bottom: 16px;
+    filter: drop-shadow(0 6px 16px rgba(158, 98, 193, 0.35));
+}
+
+.welcome-title {
+    font-size: 34px;
+    font-weight: 800;
+    color: #4a2a72;
+    margin-bottom: 10px;
+    background: linear-gradient(135deg, #9e62c1, #7b3fa0);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.welcome-subtitle {
+    font-size: 18px;
+    color: #6b5b8a;
+    margin-bottom: 14px;
+    font-weight: 600;
+}
+
+.welcome-desc {
+    font-size: 15px;
+    color: #8a7ba6;
+    line-height: 1.7;
+    margin-bottom: 30px;
+}
+
+/* 功能按钮 */
+.welcome-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    justify-content: center;
+}
+
+.welcome-btn {
+    padding: 12px 22px;
+    border-radius: 30px;
+    background: rgba(158, 98, 193, 0.1);
+    color: #8a5fb0;
+    font-size: 15px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.25s;
+    border: 1px solid rgba(158, 98, 193, 0.25);
+}
+
+.welcome-btn:hover {
+    transform: translateY(-3px);
+    background: rgba(158, 98, 193, 0.18);
+    box-shadow: 0 8px 20px rgba(158, 98, 193, 0.25);
+    color: #7b3fa0;
+}
+
+.welcome-btn-primary {
+    background: linear-gradient(135deg, #9e62c1, #7b3fa0);
+    color: #fff;
+    border: none;
+    box-shadow: 0 6px 20px rgba(158, 98, 193, 0.4);
+}
+
+.welcome-btn-primary:hover {
+    background: linear-gradient(135deg, #8a4fb0, #6b3390);
+    color: #fff;
+    box-shadow: 0 10px 28px rgba(158, 98, 193, 0.5);
+}
+
+/* 响应式 */
+@media (max-width: 768px) {
+    .white-content {
+        padding: 16px;
+    }
+    .welcome-card {
+        padding: 32px 24px;
+        border-radius: 20px;
+    }
+    .welcome-emoji {
+        font-size: 56px;
+    }
+    .welcome-title {
+        font-size: 26px;
+    }
+    .welcome-actions {
+        flex-direction: column;
+    }
+    .welcome-btn {
+        width: 100%;
+    }
+}
