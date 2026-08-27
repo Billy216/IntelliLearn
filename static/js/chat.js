@@ -6,10 +6,21 @@
     let messages = [];
     let currentConversationId = convId ? parseInt(convId) : null; // 当前对话ID
 
+    // 待发送的图片（用户通过 + 号选择，尚未发送）
+    let pendingImageFile = null;   // 本地 File 对象
+    let pendingImageUrl = '';      // 本地预览 dataURL
+
     const container = document.getElementById('messagesContainer');
     const input = document.getElementById('messageInput');
     const sendBtn = document.getElementById('sendBtn');
     const conversationListEl = document.getElementById('conversationList');
+
+    // 图片上传相关元素
+    const attachBtn = document.getElementById('attachBtn');
+    const imageInput = document.getElementById('imageInput');
+    const imagePreviewBar = document.getElementById('imagePreviewBar');
+    const previewImage = document.getElementById('previewImage');
+    const removeImageBtn = document.getElementById('removeImageBtn');
 
     // ======================== 本地默认数据（接口未就绪时兜底） ========================
     const FALLBACK_CONVERSATIONS = [
@@ -44,6 +55,70 @@
     function showToast(msg) {
         // 简单提示，可自行替换为好看的 toast
         alert(msg);
+    }
+
+    // ======================== 图片上传/预览 ========================
+    // 点击 + 号 -> 触发本地文件选择
+    attachBtn.addEventListener('click', function() {
+        imageInput.click();
+    });
+
+    // 选择文件后：校验类型/大小，并本地预览
+    imageInput.addEventListener('change', function() {
+        const file = this.files[0];
+        if (!file) return;
+
+        if (!file.type.startsWith('image/')) {
+            showToast('请选择图片文件（jpg / png 等）');
+            this.value = '';
+            return;
+        }
+        const MAX_SIZE = 5 * 1024 * 1024;
+        if (file.size > MAX_SIZE) {
+            showToast('图片大小不能超过 5MB');
+            this.value = '';
+            return;
+        }
+
+        pendingImageFile = file;
+        const reader = new FileReader();
+        reader.onload = function(ev) {
+            pendingImageUrl = ev.target.result;
+            previewImage.src = pendingImageUrl;
+            imagePreviewBar.style.display = 'flex';
+        };
+        reader.readAsDataURL(file);
+        this.value = ''; // 允许再次选择同一文件
+    });
+
+    // 删除预览图片
+    removeImageBtn.addEventListener('click', function() {
+        pendingImageFile = null;
+        pendingImageUrl = '';
+        previewImage.src = '';
+        imagePreviewBar.style.display = 'none';
+    });
+
+    // 上传图片并返回 image_url（供发送时使用）
+    function uploadImage(file) {
+        return new Promise((resolve, reject) => {
+            const formData = new FormData();
+            formData.append('image', file);
+            fetch('/api/upload_image', {
+                method: 'POST',
+                body: formData,
+                credentials: 'same-origin'
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success && data.image_url) {
+                    resolve(data.image_url);
+                } else {
+                    reject(data.message || '图片上传失败');
+                }
+            })
+            .catch(() => reject('网络错误，图片上传失败'));
+        });
     }
 
     // ======================== 接口1：获取对话列表（侧边栏渲染） ========================
@@ -149,18 +224,41 @@
     }
 
     // ======================== 接口3：发送消息（核心） ========================
-    function sendMessage(text) {
-        if (!text.trim() && !imageUrl) return;
+    async function sendMessage(text) {
+        // 优先使用用户刚选择的图片；若未选择则回退到 URL 参数携带的图片
+        let imageToSend = pendingImageUrl || imageUrl || '';
+
+        // 若用户选择的是本地文件，需要先上传得到可用的服务器 URL
+        if (pendingImageFile) {
+            sendBtn.disabled = true;
+            sendBtn.textContent = '上传中...';
+            try {
+                imageToSend = await uploadImage(pendingImageFile);
+            } catch (e) {
+                sendBtn.disabled = false;
+                sendBtn.textContent = '发送';
+                addMessage('assistant', '❌ ' + (e || '图片上传失败'));
+                return;
+            }
+        }
+
+        if (!text.trim() && !imageToSend) return;
         const userMsg = text.trim() || '请分析这张图片';
         messages.push({ role: 'user', content: userMsg });
-        addMessage('user', userMsg, imageUrl);
+        addMessage('user', userMsg, imageToSend);
+
+        // 发送完成后清除预览，允许继续选择下一张图片
+        pendingImageFile = null;
+        pendingImageUrl = '';
+        previewImage.src = '';
+        imagePreviewBar.style.display = 'none';
 
         sendBtn.disabled = true;
         sendBtn.textContent = '发送中...';
 
         // 组装请求体，附带当前对话ID（若存在）
         const payload = {
-            image_url: imageUrl || '',
+            image_url: imageToSend || '',
             messages: messages
         };
         if (currentConversationId) {
@@ -243,7 +341,8 @@
 
         sendBtn.addEventListener('click', function() {
             const text = input.value.trim();
-            if (text) {
+            // 有文字或有待发送的图片时才发送
+            if (text || pendingImageUrl || imageUrl) {
                 sendMessage(text);
                 input.value = '';
             }
