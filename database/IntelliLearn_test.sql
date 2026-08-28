@@ -38,7 +38,7 @@ CREATE TABLE `users` (
   UNIQUE KEY `user_no` (`user_no`),
   KEY `idx_user_no` (`user_no`),
   KEY `idx_email` (`email`)
-) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -47,7 +47,6 @@ CREATE TABLE `users` (
 
 LOCK TABLES `users` WRITE;
 /*!40000 ALTER TABLE `users` DISABLE KEYS */;
-INSERT INTO `users` VALUES (2,'student','f25016621','$2b$12$FmaeVQJ/btGGQCUKmrgkH.MufweWtCmSJrB0U7.fOSEdynCu6sgDO','信息科学与技术',NULL,'石昊天',1,'/static/avatars/1786172168_JPG','2026-08-06 16:35:36','2026-08-08 14:56:08');
 /*!40000 ALTER TABLE `users` ENABLE KEYS */;
 UNLOCK TABLES;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
@@ -60,4 +59,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-08-08 15:02:46
+-- Dump completed on 2026-08-28 20:54:04

@@ -1,0 +1,15 @@
+.env
+
+__pycache__/
+*.pyc
+
+.venv/
+venv/
+
+.idea/
+.vscode/
+
+uploads/avatars/*
+uploads/problems/*
+
+appOld.py
