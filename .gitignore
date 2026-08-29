@@ -12,4 +12,7 @@ venv/
 uploads/avatars/*
 uploads/problems/*
 
+static/avatars/
+static/uploads/
+
 appOld.py

@@ -93,9 +93,9 @@ class Config:
     )
 
     # =========================
-    # DeepSeek
+    # AI
     # =========================
 
-    DEEPSEEK_API_KEY = os.getenv(
-        "DEEPSEEK_API_KEY"
+    AI_API_KEY = os.getenv(
+        "AI_API_KEY"
     )
