@@ -46,10 +46,12 @@ def create_app():
     from backend.routes.auth import auth_bp
     from backend.routes.user import user_bp
     from backend.routes.upload import upload_bp
+    from backend.routes.chat import chat_bp
 
     app.register_blueprint(page_bp)
     app.register_blueprint(auth_bp)
     app.register_blueprint(user_bp)
     app.register_blueprint(upload_bp)
+    app.register_blueprint(chat_bp)
 
     return app

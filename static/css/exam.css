@@ -1,0 +1,453 @@
+/* ============================================================
+   试卷生成页样式 - exam.css
+   ============================================================ */
+
+/* 覆盖 home.css 的 .content，让试卷页可纵向滚动 */
+.content {
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: flex-start !important;
+    align-items: stretch !important;
+    width: 100%;
+    height: calc(100vh - 65px);
+    padding: 18px 24px;
+    overflow-y: auto;
+    box-sizing: border-box;
+}
+
+/* ===== 顶部工具条 ===== */
+.exam-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    background: rgba(255, 255, 255, 0.65);
+    backdrop-filter: blur(20px);
+    border-radius: 14px;
+    padding: 12px 18px;
+    box-shadow: 0 2px 12px rgba(158, 98, 193, 0.12);
+    margin-bottom: 16px;
+    flex-shrink: 0;
+}
+
+.exam-toolbar-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.exam-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: #1a1a2e;
+}
+
+.exam-select {
+    padding: 8px 14px;
+    border: 1.5px solid rgba(158, 98, 193, 0.4);
+    border-radius: 12px;
+    background: #fff;
+    color: #333;
+    font-size: 14px;
+    outline: none;
+    cursor: pointer;
+    font-family: inherit;
+    transition: border-color 0.2s;
+}
+
+.exam-select:focus {
+    border-color: #9e62c1;
+}
+
+.exam-gen-btn {
+    width: auto;
+    padding: 9px 24px;
+    font-size: 15px;
+}
+
+.exam-status {
+    font-size: 13px;
+    color: #9e62c1;
+    font-weight: 500;
+    max-width: 480px;
+    text-align: right;
+}
+
+/* ===== 试卷主体 ===== */
+.exam-body {
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(20px);
+    border-radius: 18px;
+    box-shadow: 0 4px 24px rgba(158, 98, 193, 0.1);
+    padding: 24px 28px;
+}
+
+.exam-paper-head {
+    border-bottom: 2px solid rgba(158, 98, 193, 0.25);
+    padding-bottom: 12px;
+    margin-bottom: 18px;
+}
+
+.exam-paper-head h2 {
+    font-size: 22px;
+    color: #1a1a2e;
+}
+
+.exam-paper-head p {
+    font-size: 13px;
+    color: #999;
+    margin-top: 4px;
+}
+
+.exam-section {
+    margin-bottom: 24px;
+}
+
+.exam-section h3 {
+    font-size: 16px;
+    font-weight: 700;
+    color: #9e62c1;
+    margin-bottom: 12px;
+    padding-left: 10px;
+    border-left: 4px solid #9e62c1;
+}
+
+.exam-questions {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+/* ===== 单题卡片 ===== */
+.exam-question {
+    background: #fff;
+    border: 1px solid rgba(158, 98, 193, 0.15);
+    border-radius: 12px;
+    padding: 14px 18px;
+    transition: box-shadow 0.25s;
+}
+
+.exam-question:hover {
+    box-shadow: 0 4px 16px rgba(158, 98, 193, 0.12);
+}
+
+.exam-question.correct {
+    border-color: #4CAF50;
+    background: rgba(76, 175, 80, 0.06);
+}
+
+.exam-question.wrong {
+    border-color: #f64f59;
+    background: rgba(246, 79, 89, 0.05);
+}
+
+.exam-q-title {
+    font-size: 14.5px;
+    color: #1a1a2e;
+    line-height: 1.7;
+    margin-bottom: 8px;
+    word-break: break-word;
+}
+
+/* ===== 选项 ===== */
+.exam-options {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.exam-option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    color: #333;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 8px;
+    transition: background 0.2s;
+}
+
+.exam-option:hover {
+    background: rgba(158, 98, 193, 0.07);
+}
+
+.exam-option input {
+    accent-color: #9e62c1;
+    cursor: pointer;
+}
+
+.exam-option.disabled {
+    opacity: 0.7;
+    cursor: default;
+}
+
+.exam-option.selected-correct {
+    color: #2e7d32;
+    font-weight: 600;
+}
+
+.exam-option.selected-wrong {
+    color: #c62828;
+    font-weight: 600;
+}
+
+/* ===== 填空输入 ===== */
+.exam-fill-input {
+    width: 100%;
+    padding: 9px 12px;
+    border: 1.5px solid #d1d5db;
+    border-radius: 10px;
+    font-size: 14px;
+    outline: none;
+    font-family: inherit;
+    box-sizing: border-box;
+    transition: border-color 0.2s;
+}
+
+.exam-fill-input:focus {
+    border-color: #9e62c1;
+}
+
+/* ===== 解答题 ===== */
+.exam-essay-textarea {
+    width: 100%;
+    min-height: 110px;
+    padding: 10px 12px;
+    border: 1.5px solid #d1d5db;
+    border-radius: 10px;
+    font-size: 14px;
+    outline: none;
+    resize: vertical;
+    font-family: inherit;
+    box-sizing: border-box;
+    transition: border-color 0.2s;
+}
+
+.exam-essay-textarea:focus {
+    border-color: #9e62c1;
+}
+
+.exam-essay-actions {
+    margin-top: 10px;
+}
+
+.exam-essay-btn {
+    padding: 8px 20px;
+    border: 1.5px solid rgb(158, 98, 193);
+    border-radius: 12px;
+    background: transparent;
+    color: rgb(158, 98, 193);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.25s;
+    font-family: inherit;
+}
+
+.exam-essay-btn:hover {
+    background: rgb(158, 98, 193);
+    color: #fff;
+}
+
+.exam-essay-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* ===== 结果反馈 ===== */
+.exam-feedback {
+    margin-top: 8px;
+    font-size: 13.5px;
+    line-height: 1.7;
+    padding: 8px 12px;
+    border-radius: 8px;
+    word-break: break-word;
+}
+
+.exam-feedback.correct {
+    color: #2e7d32;
+    background: rgba(76, 175, 80, 0.1);
+}
+
+.exam-feedback.wrong {
+    color: #c62828;
+    background: rgba(246, 79, 89, 0.08);
+}
+
+.exam-feedback .analysis {
+    margin-top: 6px;
+    color: #444;
+    background: #f8faff;
+    border-radius: 8px;
+    padding: 8px 12px;
+    border: 1px solid #eef2f7;
+}
+
+.exam-feedback .analysis-title {
+    font-weight: 700;
+    color: #1a1a2e;
+    margin-bottom: 2px;
+}
+
+.exam-process {
+    margin-top: 10px;
+    background: #f8faff;
+    border: 1px solid #eef2f7;
+    border-radius: 10px;
+    padding: 12px 16px;
+    font-size: 14px;
+    line-height: 1.8;
+    color: #2d2d44;
+    word-break: break-word;
+}
+
+.exam-process h4 {
+    color: #9e62c1;
+    margin-bottom: 6px;
+}
+
+/* ===== 底部按钮 ===== */
+.exam-actions {
+    display: flex;
+    justify-content: center;
+    gap: 14px;
+    padding: 10px 0 4px;
+    border-top: 1px solid rgba(158, 98, 193, 0.12);
+}
+
+.exam-actions .btn-upload {
+    width: auto;
+    padding: 10px 30px;
+    font-size: 15px;
+}
+
+.btn-ghost {
+    padding: 10px 30px;
+    border: 1.5px solid rgb(158, 98, 193);
+    border-radius: 12px;
+    background: transparent;
+    color: rgb(158, 98, 193);
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.25s;
+    font-family: inherit;
+}
+
+.btn-ghost:hover {
+    background: rgb(158, 98, 193);
+    color: #fff;
+}
+
+/* ===== 空状态 ===== */
+.exam-empty {
+    text-align: center;
+    padding: 60px 20px;
+    color: #aaa;
+}
+
+.exam-empty .empty-icon {
+    font-size: 42px;
+    margin-bottom: 10px;
+}
+
+.exam-empty h3 {
+    font-size: 17px;
+    color: #666;
+    margin-bottom: 6px;
+}
+
+.exam-empty p {
+    font-size: 13px;
+}
+
+/* ===== 响应式 ===== */
+@media (max-width: 768px) {
+    .content {
+        padding: 10px;
+    }
+
+    .exam-body {
+        padding: 16px 14px;
+    }
+
+    .exam-toolbar {
+        padding: 10px 12px;
+    }
+}
+
+/* ===== 历史试卷 ===== */
+.exam-history {
+    background: rgba(255, 255, 255, 0.6);
+    backdrop-filter: blur(20px);
+    border-radius: 14px;
+    padding: 12px 16px;
+    box-shadow: 0 2px 12px rgba(158, 98, 193, 0.1);
+    margin-bottom: 16px;
+    flex-shrink: 0;
+}
+
+.exam-history-head {
+    font-size: 14px;
+    font-weight: 700;
+    color: #1a1a2e;
+    margin-bottom: 8px;
+}
+
+.exam-history-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.exam-history-chip {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    padding: 6px 14px;
+    border: 1.5px solid rgba(158, 98, 193, 0.3);
+    border-radius: 10px;
+    background: #fff;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.2s;
+}
+
+.exam-history-chip:hover {
+    border-color: #9e62c1;
+    background: rgba(158, 98, 193, 0.08);
+}
+
+.exam-history-chip.active {
+    background: rgb(158, 98, 193);
+    border-color: rgb(158, 98, 193);
+}
+
+.exam-history-chip.active .chip-major,
+.exam-history-chip.active .chip-time {
+    color: #fff;
+}
+
+.chip-major {
+    font-size: 13px;
+    font-weight: 600;
+    color: #9e62c1;
+}
+
+.chip-time {
+    font-size: 11px;
+    color: #999;
+}
+
+/* ===== 答对后“查看解析”链接 ===== */
+.show-analysis {
+    margin-left: 8px;
+    font-size: 12px;
+    color: #9e62c1;
+    text-decoration: underline;
+    cursor: pointer;
+}

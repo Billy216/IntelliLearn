@@ -1,12 +1,12 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SAMS 学校活动管理系统</title>
+    <title>试卷生成 - SAMS</title>
     <link rel="icon" href="/static/pic/logo.png">
     <link rel="stylesheet" href="/static/css/home.css">
-    <link rel="stylesheet" href="/static/css/register_exam.css">
+    <link rel="stylesheet" href="/static/css/exam.css">
 </head>
 <body>
     <div class="main">
@@ -26,7 +26,7 @@
         </div>
         <div class="container">
             <div class="lf_nav">
-                <a href="/home">
+                <a href="/chat">
                     <div class="nav_item">
                         <svg t="1745119656844" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="4843" width="24" height="24"><path d="M498.176 546.304c-133.12 0-241.152-108.032-241.152-241.152s108.032-241.152 241.152-241.152 241.152 108.032 241.152 241.152-108.032 241.152-241.152 241.152z m0-431.104c-104.96 0-189.952 84.992-189.952 189.952s84.992 189.952 189.952 189.952 189.952-84.992 189.952-189.952-84.992-189.952-189.952-189.952z" fill="#9e62c1" p-id="4844"></path><path d="M856.576 920.064c-14.336 0-25.6-11.264-25.6-25.6 0-183.808-149.504-332.8-332.8-332.8s-332.8 149.504-332.8 332.8c0 14.336-11.264 25.6-25.6 25.6s-25.6-11.264-25.6-25.6c0-211.968 172.544-384 384-384 211.968 0 384 172.544 384 384 0 13.824-11.264 25.6-25.6 25.6z" fill="#9e62c1" p-id="4845"></path></svg>
                         AI回答
@@ -46,105 +46,64 @@
                 </a>
             </div>
             <div class="content">
-                <div class="row">
-                    <div class="card">
-                        <h2>拔河比赛</h2>
-                        <p>时间：<span>2024-11-17 10:00</span></p>
-                        <p>地点：<span>操场</span></p>
-                        <p class="sp">描述：<span class="describe" title="你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你">你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你</span></p>
-                        <p>报名开始时间：<span>2024-11-17 10:00</span></p>
-                        <p>报名截止时间：<span>2024-11-17 10:00</span></p>
-                        <p class="nM">报名人数：<span>33/50</span></p>
-                        <p><button class="isregistered">已报名</button></p>
+                <div class="exam-toolbar">
+                    <div class="exam-toolbar-left">
+                        <span class="exam-label">选择学科</span>
+                        <select id="examSubject" class="exam-select">
+                            <option value="语文">语文</option>
+                            <option value="高数" selected>高数</option>
+                            <option value="大物">大物</option>
+                            <option value="离散">离散</option>
+                            <option value="英语">英语</option>
+                            <option value="py">Python</option>
+                            <option value="历史">历史</option>
+                            <option value="地理">地理</option>
+                            <option value="政治">政治</option>
+                        </select>
+                        <button id="generateExamBtn" class="btn-upload exam-gen-btn">🎲 生成试卷</button>
                     </div>
-                    <div class="card">
-                        <h2>拔河比赛</h2>
-                        <p>时间：<span>2024-11-17 10:00</span></p>
-                        <p>地点：<span>操场</span></p>
-                        <p class="sp">描述：<span class="describe" title="你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你">你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你</span></p>
-                        <p>报名开始时间：<span>2024-11-17 10:00</span></p>
-                        <p>报名截止时间：<span>2024-11-17 10:00</span></p>
-                        <p class="nM">报名人数：<span>33/50</span></p>
-                        <form method="post">
-                            <p class="nM"><input type="hidden" name="activityId" value=""></p>
-                            <p class="nM"><button type="submit" class="button">报名</button></p>
-                        </form>
+                    <div class="exam-status" id="examStatus"></div>
+                </div>
+
+                <div class="exam-history" id="examHistory" style="display:none;">
+                    <div class="exam-history-head">📑 历史试卷</div>
+                    <div class="exam-history-list" id="examHistoryList"></div>
+                </div>
+
+                <div class="exam-body" id="examBody" style="display:none;">
+                    <div class="exam-paper-head">
+                        <h2 id="examPaperTitle">试卷</h2>
+                        <p>根据你的错题随机生成 · 判断3题 · 选择3题 · 填空3题 · 解答1题</p>
                     </div>
-                    <div class="card">
-                        <h2>拔河比赛</h2>
-                        <p>时间：<span>2024-11-17 10:00</span></p>
-                        <p>地点：<span>操场</span></p>
-                        <p class="sp">描述：<span class="describe" title="你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你">你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你</span></p>
-                        <p>报名开始时间：<span>2024-11-17 10:00</span></p>
-                        <p>报名截止时间：<span>2024-11-17 10:00</span></p>
-                        <p class="nM">报名人数：<span>33/50</span></p>
-                        <form method="post">
-                            <p class="nM"><input type="hidden" name="activityId" value=""></p>
-                            <p class="nM"><button type="submit" class="button">报名</button></p>
-                        </form>
-                    </div>
-                    <div class="card">
-                        <h2>拔河比赛</h2>
-                        <p>时间：<span>2024-11-17 10:00</span></p>
-                        <p>地点：<span>操场</span></p>
-                        <p class="sp">描述：<span class="describe" title="你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你">你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你</span></p>
-                        <p>报名开始时间：<span>2024-11-17 10:00</span></p>
-                        <p>报名截止时间：<span>2024-11-17 10:00</span></p>
-                        <p class="nM">报名人数：<span>33/50</span></p>
-                        <form method="post">
-                            <p class="nM"><input type="hidden" name="activityId" value=""></p>
-                            <p class="nM"><button type="submit" class="button">报名</button></p>
-                        </form>
-                    </div>
-                    <div class="card">
-                        <h2>拔河比赛</h2>
-                        <p>时间：<span>2024-11-17 10:00</span></p>
-                        <p>地点：<span>操场</span></p>
-                        <p class="sp">描述：<span class="describe" title="你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你">你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你</span></p>
-                        <p>报名开始时间：<span>2024-11-17 10:00</span></p>
-                        <p>报名截止时间：<span>2024-11-17 10:00</span></p>
-                        <p class="nM">报名人数：<span>33/50</span></p>
-                        <form method="post">
-                            <p class="nM"><input type="hidden" name="activityId" value=""></p>
-                            <p class="nM"><button type="submit" class="button">报名</button></p>
-                        </form>
-                    </div>
-                    <div class="card">
-                        <h2>拔河比赛</h2>
-                        <p>时间：<span>2024-11-17 10:00</span></p>
-                        <p>地点：<span>操场</span></p>
-                        <p class="sp">描述：<span class="describe" title="你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你">你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你</span></p>
-                        <p>报名开始时间：<span>2024-11-17 10:00</span></p>
-                        <p>报名截止时间：<span>2024-11-17 10:00</span></p>
-                        <p class="nM">报名人数：<span>33/50</span></p>
-                        <form method="post">
-                            <p class="nM"><input type="hidden" name="activityId" value=""></p>
-                            <p class="nM"><button type="submit" class="button">报名</button></p>
-                        </form>
+
+                    <section class="exam-section">
+                        <h3>一、判断题（每题 5 分）</h3>
+                        <div class="exam-questions" id="judgeList"></div>
+                    </section>
+
+                    <section class="exam-section">
+                        <h3>二、选择题（每题 5 分）</h3>
+                        <div class="exam-questions" id="choiceList"></div>
+                    </section>
+
+                    <section class="exam-section">
+                        <h3>三、填空题（每题 10 分）</h3>
+                        <div class="exam-questions" id="fillList"></div>
+                    </section>
+
+                    <section class="exam-section">
+                        <h3>四、解答题（25 分）</h3>
+                        <div class="exam-questions" id="essayList"></div>
+                    </section>
+
+                    <div class="exam-actions">
+                        <button id="resetExamBtn" class="btn-ghost">🔄 重新作答</button>
                     </div>
                 </div>
-                <div class="page_ch">
-                    <div class="page_btn">
-                        <a href="1" class="active">1</a>
-                        <a href="2">2</a>
-                        <a href="3">3</a>
-                        <a href="4">4</a>
-                        <a href="5">5</a>
-                    </div>
-                </div>
-                <dialog id="resultDialog">
-                    <div class="alent">
-                        <svg t="1729997623286" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="10176" width="64" height="64"><path d="M512 0C229.23 0 0 229.23 0 512s229.23 512 512 512 512-229.23 512-512S794.77 0 512 0zM792.014 390.378 458.26 724.13c-7.81 7.81-20.474 7.81-28.284 0l-197.99-197.99c-7.81-7.808-7.81-20.472 0-28.282l62.226-62.224c7.81-7.812 20.474-7.81 28.284 0l121.624 121.62 257.388-257.386c7.81-7.81 20.472-7.81 28.284 0l62.224 62.226C799.824 369.904 799.826 382.568 792.014 390.378z" p-id="10177" fill="#52C41A"></path></svg>
-                        <p>报名成功</p>
-                        <a onclick="document.getElementById('resultDialog').close();" class="close" id="linkToCurrentPage" href="#">关闭</a>
-                    </div>
-                </dialog>
             </div>
         </div>
     </div>
 
-    <!-- 接入js -->
-    <script src="/static/js/home.js"></script>
-    <script src="/static/js/register.js"></script>
+    <script src="/static/js/exam.js"></script>
 </body>
 </html>

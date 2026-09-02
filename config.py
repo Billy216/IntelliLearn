@@ -96,6 +96,16 @@ class Config:
     # AI
     # =========================
 
+    AI_API_URL = os.getenv(
+        "AI_API_URL",
+        "https://api.agnes-ai.cn/v1/chat/completions"
+    )
+
+    AI_MODEL = os.getenv(
+        "AI_MODEL",
+        "agnes-2.5-flash"
+    )
+
     AI_API_KEY = os.getenv(
         "AI_API_KEY"
     )
