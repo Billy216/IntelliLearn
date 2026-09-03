@@ -2,8 +2,8 @@
 //  errors_register.js - 错题本（带模态框）
 // ============================================================
 
-// ===== 模拟题库数据 =====
-const allQuestions = [
+// ===== 兜底模拟题库数据（接口失败时使用） =====
+const FALLBACK_QUESTIONS = [
     // ===== 高等数学 (6道) =====
     { id: 1, subject: '高等数学', grade: '大一', question: '求极限 lim(x→0) (sin x)/x', answer: 'lim(x→0) (sin x)/x = 1。这是重要极限。' },
     { id: 2, subject: '高等数学', grade: '大一', question: '求导数：y = x³ + 2x² - 5x + 1', answer: "y' = 3x² + 4x - 5。使用幂函数求导法则。" },
@@ -78,6 +78,7 @@ const allQuestions = [
 ];
 
 // ===== 状态管理 =====
+let allQuestions = [];
 let currentSubject = 'all';
 let currentPage = 0;
 const PAGE_SIZE = 12;
@@ -100,6 +101,16 @@ const modalTags = document.getElementById('modalTags');
 const modalQuestion = document.getElementById('modalQuestion');
 const modalAnswer = document.getElementById('modalAnswer');
 
+// ===== 工具函数 =====
+function escapeHtml(text) {
+    return String(text)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
 // ===== 收藏状态 =====
 const bookmarks = new Set();
 
@@ -107,19 +118,82 @@ const bookmarks = new Set();
 function getSubjectDisplayName(subject) {
     const nameMap = {
         'all': '全部',
-        '高等数学': '高等数学',
-        '线性代数': '线性代数',
-        '概率论': '概率论',
-        '大学物理': '大学物理',
-        '化学': '化学',
-        '生物学': '生物学',
-        '计算机科学': '计算机科学',
-        '经济学': '经济学',
-        '管理学': '管理学',
-        '法学': '法学',
-        '文学': '文学'
+        '语文': '语文',
+        '高数': '高数',
+        '大物': '大物',
+        '离散': '离散',
+        '英语': '英语',
+        'py': 'Python',
+        '历史': '历史',
+        '地理': '地理',
+        '政治': '政治'
     };
     return nameMap[subject] || subject;
+}
+
+function getSubjectEmoji(subject) {
+    const emojiMap = {
+        'all': '📚',
+        '语文': '📖',
+        '高数': '📐',
+        '大物': '⚡',
+        '离散': '🔢',
+        '英语': '🇬🇧',
+        'py': '💻',
+        '历史': '🏛️',
+        '地理': '🌍',
+        '政治': '🏛️'
+    };
+    return emojiMap[subject] || '📘';
+}
+
+// ===== 构建学科标签（根据实际数据动态生成） =====
+function buildTabs() {
+    const subjects = ['all', ...new Set(allQuestions.map(q => q.subject))];
+    document.querySelectorAll('.subject-tab').forEach(tab => tab.remove());
+    subjects.forEach(subject => {
+        const btn = document.createElement('button');
+        btn.className = 'subject-tab' + (subject === 'all' ? ' active' : '');
+        btn.dataset.subject = subject;
+        btn.textContent = getSubjectEmoji(subject) + ' ' + getSubjectDisplayName(subject);
+        btn.addEventListener('click', function() {
+            const sub = this.dataset.subject;
+            if (sub !== currentSubject) {
+                switchSubject(sub);
+            }
+        });
+        document.querySelector('.subject-nav').appendChild(btn);
+    });
+}
+
+// ===== 从后端加载错题数据 =====
+function loadWrongQuestions() {
+    fetch('/api/wrong_questions', {
+        method: 'GET',
+        credentials: 'same-origin'
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success && data.data) {
+            allQuestions = data.data.map(r => ({
+                id: r.id,
+                subject: r.major,
+                grade: r.sub || '',
+                question: r.question,
+                answer: r.answer || '',
+                image_url: r.image_url || ''
+            }));
+        } else {
+            allQuestions = [...FALLBACK_QUESTIONS];
+        }
+        buildTabs();
+        switchSubject('all');
+    })
+    .catch(() => {
+        allQuestions = [...FALLBACK_QUESTIONS];
+        buildTabs();
+        switchSubject('all');
+    });
 }
 
 // ===== 渲染函数 =====
@@ -148,14 +222,14 @@ function renderQuestions(questions, append = false) {
         card.innerHTML = `
             <div class="card-header">
                 <div class="card-tags">
-                    <span class="card-tag subject">${item.subject}</span>
-                    <span class="card-tag grade">${item.grade}</span>
+                    <span class="card-tag subject">${escapeHtml(getSubjectDisplayName(item.subject))}</span>
+                    ${item.grade ? `<span class="card-tag grade">${escapeHtml(item.grade)}</span>` : ''}
                 </div>
                 <button class="card-bookmark ${isBookmarked ? 'active' : ''}" data-id="${item.id}">
                     ${isBookmarked ? '⭐' : '☆'}
                 </button>
             </div>
-            <div class="card-question">${item.question}</div>
+            <div class="card-question">${escapeHtml(item.question).replace(/\n/g, '<br>')}</div>
             <div class="card-footer">
                 <button class="card-btn" data-id="${item.id}">查看解答</button>
             </div>
@@ -210,7 +284,7 @@ function switchSubject(subject) {
     hasMoreData = true;
     noMore.style.display = 'none';
     
-    subjectTabs.forEach(tab => {
+    document.querySelectorAll('.subject-tab').forEach(tab => {
         tab.classList.toggle('active', tab.dataset.subject === subject);
     });
     
@@ -247,12 +321,18 @@ function openModal(id) {
     
     // 设置标签
     modalTags.innerHTML = `
-        <span class="tag subject">${item.subject}</span>
-        <span class="tag grade">${item.grade}</span>
+        <span class="tag subject">${escapeHtml(getSubjectDisplayName(item.subject))}</span>
+        ${item.grade ? `<span class="tag grade">${escapeHtml(item.grade)}</span>` : ''}
     `;
     
+    // 图片题目
+    let imageHtml = '';
+    if (item.image_url) {
+        imageHtml = `<img src="${escapeHtml(item.image_url)}" alt="题目图片" style="max-width:100%;border-radius:10px;margin-bottom:12px;">`;
+    }
+    
     // 设置题目
-    modalQuestion.textContent = item.question;
+    modalQuestion.innerHTML = imageHtml + escapeHtml(item.question).replace(/\n/g, '<br>');
     
     // 设置答案（支持换行）
     modalAnswer.textContent = item.answer;
@@ -351,7 +431,7 @@ function toggleBookmark(id) {
 }
 
 // ===== 初始化 =====
-switchSubject('all');
+loadWrongQuestions();
 
 console.log('📚 错题本已加载');
 console.log(`📊 共 ${allQuestions.length} 道题目`);

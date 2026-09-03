@@ -22,13 +22,49 @@
     const previewImage = document.getElementById('previewImage');
     const removeImageBtn = document.getElementById('removeImageBtn');
 
-    // ======================== 本地默认数据（接口未就绪时兜底） ========================
-    const FALLBACK_CONVERSATIONS = [
-        { id: 1, title: '数学问题咨询', preview: '关于微积分的疑问...', updated_at: '2026-08-10 14:32' },
-        { id: 2, title: '物理作业讨论', preview: '牛顿第二定律应用', updated_at: '2026-08-09 10:15' },
-        { id: 3, title: '代码调试帮助', preview: 'Python 报错排查', updated_at: '2026-08-08 22:01' },
-        { id: 4, title: '英语作文润色', preview: '学术写作建议', updated_at: '2026-08-07 09:43' }
-    ];
+    // ======================== 上标转换（与后端一致） ========================
+    const SUPERSCRIPT_MAP = {
+        '0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴', '5': '⁵',
+        '6': '⁶', '7': '⁷', '8': '⁸', '9': '⁹',
+        'a': 'ᵃ', 'b': 'ᵇ', 'c': 'ᶜ', 'd': 'ᵈ', 'e': 'ᵉ', 'f': 'ᶠ', 'g': 'ᵍ',
+        'h': 'ʰ', 'i': 'ⁱ', 'j': 'ʲ', 'k': 'ᵏ', 'l': 'ˡ', 'm': 'ᵐ', 'n': 'ⁿ',
+        'o': 'ᵒ', 'p': 'ᵖ', 'r': 'ʳ', 's': 'ˢ', 't': 'ᵗ', 'u': 'ᵘ', 'v': 'ᵛ',
+        'w': 'ʷ', 'x': 'ˣ', 'y': 'ʸ', 'z': 'ᶻ',
+        '+': '⁺', '-': '⁻', '=': '⁼', '(': '⁽', ')': '⁾'
+    };
+
+    function toSuperscript(text) {
+        return String(text).split('').map(ch => SUPERSCRIPT_MAP[ch] || ch).join('');
+    }
+
+    function convertPowerNotation(text) {
+        return String(text).replace(/\^(\{[^}]*\}|\([^)]*\)|[A-Za-z]+|\d+|.)/g, function(match, inner) {
+            if ((inner.startsWith('{') && inner.endsWith('}')) || (inner.startsWith('(') && inner.endsWith(')'))) {
+                inner = inner.slice(1, -1);
+            }
+            return toSuperscript(inner);
+        });
+    }
+
+    // ======================== AI 回答文本渲染 ========================
+    function escapeHtml(text) {
+        return String(text)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    function renderAssistantContent(text) {
+        let html = escapeHtml(text);
+        html = convertPowerNotation(html);
+        // **加粗**
+        html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+        // 换行
+        html = html.replace(/\n/g, '<br>');
+        return html;
+    }
 
     // ======================== 工具函数 ========================
     function addMessage(role, content, imgUrl = '') {
@@ -46,10 +82,75 @@
                 msgDiv.appendChild(textNode);
             }
         } else {
-            msgDiv.textContent = content;
+            msgDiv.innerHTML = renderAssistantContent(content || '');
         }
         container.appendChild(msgDiv);
         container.scrollTop = container.scrollHeight;
+    }
+
+    // 在 AI 回答下方展示分类结果 + 加入错题集按钮
+    function addClassificationBlock(classification, question, answer, imageUrl) {
+        if (!classification || !classification.major) return;
+
+        const box = document.createElement('div');
+        box.className = 'classify-box';
+
+        const tags = document.createElement('div');
+        tags.className = 'classify-tags';
+        const majorTag = document.createElement('span');
+        majorTag.className = 'classify-tag major';
+        majorTag.textContent = '大类：' + displayMajorName(classification.major);
+        tags.appendChild(majorTag);
+        (classification.sub || []).forEach(sub => {
+            const subTag = document.createElement('span');
+            subTag.className = 'classify-tag sub';
+            subTag.textContent = '小类：' + sub;
+            tags.appendChild(subTag);
+        });
+        box.appendChild(tags);
+
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'wrong-btn';
+        btn.textContent = '📒 加入错题集';
+        btn.addEventListener('click', function() {
+            btn.disabled = true;
+            btn.textContent = '正在加入...';
+            fetch('/api/wrong_questions', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'same-origin',
+                body: JSON.stringify({
+                    question: question || '',
+                    answer: answer || '',
+                    image_url: imageUrl || '',
+                    major: classification.major,
+                    sub: classification.sub || []
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    btn.textContent = '✅ ' + (data.message || '已加入错题集');
+                    btn.classList.add('done');
+                } else {
+                    btn.disabled = false;
+                    btn.textContent = '❌ ' + (data.message || '加入失败');
+                }
+            })
+            .catch(() => {
+                btn.disabled = false;
+                btn.textContent = '❌ 加入失败，请重试';
+            });
+        });
+        box.appendChild(btn);
+
+        container.appendChild(box);
+        container.scrollTop = container.scrollHeight;
+    }
+
+    function displayMajorName(major) {
+        return major === 'py' ? 'Python' : major;
     }
 
     function showToast(msg) {
@@ -132,21 +233,28 @@
             return res.json();
         })
         .then(data => {
-            if (data.success && data.data && data.data.length > 0) {
+            if (data.success) {
                 renderConversationList(data.data);
             } else {
-                // 后端返回空列表，使用兜底数据
-                renderConversationList(FALLBACK_CONVERSATIONS);
+                renderConversationList([]);
             }
         })
         .catch(() => {
-            // 接口报错（如404），使用兜底数据
-            renderConversationList(FALLBACK_CONVERSATIONS);
+            renderConversationList([]);
         });
     }
 
     function renderConversationList(convs) {
         conversationListEl.innerHTML = '';
+        if (!convs || convs.length === 0) {
+            const empty = document.createElement('div');
+            empty.className = 'chat-sidebar-item conversation';
+            empty.style.color = '#94a3b8';
+            empty.style.fontSize = '13px';
+            empty.textContent = '暂无历史对话，提问后会自动生成';
+            conversationListEl.appendChild(empty);
+            return;
+        }
         convs.forEach(conv => {
             const div = document.createElement('div');
             div.className = 'chat-sidebar-item conversation';
@@ -156,8 +264,8 @@
                 div.classList.add('active');
             }
             div.innerHTML = `
-                <span class="conv-title">${conv.title}</span>
-                <span class="conv-preview">${conv.preview || ''}</span>
+                <span class="conv-title">${escapeHtml(conv.title)}</span>
+                <span class="conv-preview">${escapeHtml(conv.preview || '')}</span>
             `;
             // 绑定点击事件（加载历史消息）
             div.addEventListener('click', function() {
@@ -197,13 +305,13 @@
             return res.json();
         })
         .then(data => {
-            if (data.success && data.data && data.data.messages) {
+                if (data.success && data.data && data.data.messages) {
                 const history = data.data.messages;
                 if (history.length === 0) {
                     addMessage('assistant', '该对话暂无消息，开始提问吧！');
                 } else {
                     history.forEach(msg => {
-                        addMessage(msg.role, msg.content);
+                        addMessage(msg.role, msg.content, msg.image_url || '');
                         messages.push(msg); // 同步本地上下文
                     });
                 }
@@ -245,7 +353,8 @@
         if (!text.trim() && !imageToSend) return;
         const userMsg = text.trim() || '请分析这张图片';
         messages.push({ role: 'user', content: userMsg });
-        addMessage('user', userMsg, imageToSend);
+        // 只发图片、没有文字时，界面只显示图片，不显示“请分析这张图片”
+        addMessage('user', text.trim() ? userMsg : '', imageToSend);
 
         // 发送完成后清除预览，允许继续选择下一张图片
         pendingImageFile = null;
@@ -279,11 +388,31 @@
                 // 如果后端返回了新的 conversation_id，更新本地
                 if (data.conversation_id) {
                     currentConversationId = data.conversation_id;
+                    // 把会话ID写入URL，刷新后能恢复该会话
+                    if (window.history && window.history.pushState) {
+                        const params = new URLSearchParams();
+                        if (imageUrl) params.set('img', imageUrl);
+                        params.set('conv', currentConversationId);
+                        window.history.pushState({}, '', window.location.pathname + '?' + params.toString());
+                    }
                     // 同时刷新侧边栏列表（新对话会出现）
                     loadConversationList();
                 }
                 messages.push({ role: 'assistant', content: data.reply });
-                addMessage('assistant', data.reply);
+                if (data.memory_used) {
+                    addMessage('assistant', '🧠 已参考你最近的提问记录\n\n' + data.reply);
+                } else {
+                    addMessage('assistant', data.reply);
+                }
+                // 拍图题目：展示分类并允许加入错题集
+                if (data.classification) {
+                    addClassificationBlock(
+                        data.classification,
+                        data.question || '',
+                        data.reply,
+                        data.image_url || ''
+                    );
+                }
             } else {
                 addMessage('assistant', data.message || '抱歉，我没有收到有效回复。');
             }
