@@ -8,7 +8,14 @@
 import json
 import re
 
-from flask import Blueprint, jsonify, request, session
+from flask import (
+    Blueprint,
+    Response,
+    jsonify,
+    request,
+    session,
+    stream_with_context
+)
 
 from backend.services import ai_service
 
@@ -84,10 +91,15 @@ def api_chat():
     try:
         if decision is None:
             recent = ai_service.get_recent_memories(user_id)
-            decision = ai_service.ai_decide_memory(
-                question,
-                [m['question'] for m in recent]
-            )
+
+            if not recent or question == '请分析这张图片':
+                # 没有历史或只是默认识图：没必要再调用一次 AI 判断记忆
+                decision = False
+            else:
+                decision = ai_service.ai_decide_memory(
+                    question,
+                    [m['question'] for m in recent]
+                )
 
         if decision:
             memories = ai_service.get_recent_memories(user_id)
@@ -258,6 +270,400 @@ def api_chat():
         'question': saved_question,
         'image_url': image_url
     })
+
+
+# ============================================================
+# 流式对话接口（SSE）：AI 逐段返回，前端实时展示
+# ============================================================
+
+def _prepare_stream_chat_context(user_id, data):
+    """流式接口共用：校验入参并准备 AI 上下文。"""
+
+    messages = data.get('messages') or []
+    image_url = data.get('image_url') or ''
+    conv_id = data.get('conversation_id')
+
+    # 取最后一条用户消息
+    question = ''
+
+    for m in reversed(messages):
+        if m.get('role') == 'user':
+            question = (m.get('content') or '').strip()
+            break
+
+    if not question:
+        question = '请分析这张图片' if image_url else ''
+
+    if not question:
+        return None, (
+            jsonify({
+                'success': False,
+                'message': '请输入问题'
+            }),
+            400
+        )
+
+    image_base64 = (
+        ai_service.load_image_base64(image_url)
+        if image_url
+        else None
+    )
+
+    # 校验会话归属（防止串用户）
+    if conv_id:
+        try:
+            conv_id = (
+                conv_id
+                if ai_service.conversation_belongs_to_user(
+                    user_id,
+                    conv_id
+                )
+                else None
+            )
+        except Exception as e:
+            print('校验会话失败:', e)
+            conv_id = None
+
+    # 判断是否需要调用历史记忆
+    memory_used = False
+    memories = []
+    decision = ai_service.should_use_memory(question)
+
+    try:
+        if decision is None:
+            recent = ai_service.get_recent_memories(user_id)
+            decision = ai_service.ai_decide_memory(
+                question,
+                [m['question'] for m in recent]
+            )
+
+        if decision:
+            memories = ai_service.get_recent_memories(user_id)
+
+            if memories:
+                memory_used = True
+    except Exception as e:
+        print('读取记忆失败（将不带记忆继续回答）:', e)
+
+    # 组装 AI 消息
+    ai_messages = []
+
+    if memory_used:
+        ctx_lines = [
+            '以下是用户最近 5 次提问与解答记录'
+            '（按时间从早到晚编号，编号越大越新）。'
+            '用户现在可能是在追问这些题，请先结合记录理解他到底问的是哪道题，'
+            '再针对性地详细讲解，不要只说套话：'
+        ]
+
+        for i, m in enumerate(reversed(memories), 1):
+            ctx_lines.append(f'{i}. 题目：{m["question"]}')
+            ctx_lines.append(f'   解答：{m["answer"] or "（无）"}')
+
+        ai_messages.append({
+            'role': 'system',
+            'content': '\n'.join(ctx_lines)
+        })
+
+    system_prompt = (
+        '你是 IntelliLearn 的学习助手。请用最通俗的中文回答问题：'
+        '1) 直接给出结论和分步骤过程，每步说明为什么这样做，像给同学讲题一样；'
+        '2) 禁止出现用户看不懂的内容：不要 LaTeX、不要反斜杠、'
+        '不要 Markdown 表格、不要内部术语；'
+        '3) 数学公式用普通文字符号，例如 lim(x→0) sinx/x、'
+        '∫0^1 x^2 dx、√2；幂用 ^ 写法（如 e^(x)、x^2）；'
+        '4) 计算务必仔细，给出答案前在心里复核一遍；'
+        '5) 如果题目信息不足或没有把握，直接说明哪里不确定，不要硬编答案；'
+        '6) 回答要完整，不要中途截断。'
+    )
+
+    if image_base64:
+        ai_messages.append({
+            'role': 'user',
+            'content': [
+                {
+                    'type': 'text',
+                    'text': system_prompt + '\n\n用户提问：' + question
+                },
+                {
+                    'type': 'image_url',
+                    'image_url': {'url': image_base64}
+                }
+            ]
+        })
+    else:
+        ai_messages.append({
+            'role': 'user',
+            'content': system_prompt + '\n\n用户提问：' + question
+        })
+
+    return {
+        'user_id': user_id,
+        'question': question,
+        'image_url': image_url,
+        'image_base64': image_base64,
+        'conv_id': conv_id,
+        'memory_used': memory_used,
+        'ai_messages': ai_messages
+    }, None
+
+
+def _save_stream_question_only(context):
+    """AI 失败时先把用户问题存下来，避免刷新丢失。"""
+
+    conv_id = context['conv_id']
+
+    try:
+        if not conv_id:
+            conv_id = ai_service.create_conversation(
+                context['user_id'],
+                context['question'][:15] or '新对话'
+            )
+
+        ai_service.save_chat_message(
+            conv_id,
+            context['user_id'],
+            'user',
+            (
+                ''
+                if context['question'] == '请分析这张图片'
+                else context['question']
+            ),
+            context['image_url']
+        )
+    except Exception as e:
+        print('保存问题失败:', e)
+
+
+def _finalize_stream_chat(
+    context,
+    reply,
+    classification=None,
+    saved_question=None,
+    classification_done=False
+):
+    """回答完成后落库并保存记忆，返回附加字段。
+
+    classification / saved_question 由调用方预先提供（拍图题在回答前先分类），
+    保证回答结束即可带着分类结果返回，不再在流式结束后额外等待。
+    """
+
+    conv_id = context['conv_id']
+    question = context['question']
+    image_url = context['image_url']
+    image_base64 = context['image_base64']
+
+    if (
+        not classification_done
+        and image_base64
+    ):
+        classification = ai_service.classify_question(
+            question,
+            image_base64
+        )
+
+    if saved_question is None:
+        saved_question = (
+            classification.get('question')
+            if classification
+            else None
+        ) or question
+
+    # 分类结果里没有大类时，不展示分类/错题集入口
+    if classification and not classification.get('major'):
+        classification = None
+
+    try:
+        if not conv_id:
+            title = (
+                saved_question
+                or question
+            )[:15] or '新对话'
+            conv_id = ai_service.create_conversation(
+                context['user_id'],
+                title
+            )
+
+        ai_service.save_chat_message(
+            conv_id,
+            context['user_id'],
+            'user',
+            saved_question,
+            image_url
+        )
+        ai_service.save_chat_message(
+            conv_id,
+            context['user_id'],
+            'assistant',
+            reply
+        )
+    except Exception as e:
+        print('保存会话消息失败:', e)
+
+    try:
+        sub_text = None
+
+        if classification and classification.get('sub'):
+            sub_text = '、'.join(classification['sub'])
+
+        ai_service.save_memory(
+            context['user_id'],
+            saved_question,
+            reply,
+            image_url,
+            (
+                classification.get('major')
+                if classification
+                else None
+            ),
+            sub_text
+        )
+    except Exception as e:
+        print('保存记忆失败:', e)
+
+    return {
+        'conversation_id': conv_id,
+        'memory_used': context['memory_used'],
+        'classification': classification,
+        'question': saved_question,
+        'image_url': image_url
+    }
+
+
+def _sse_data(obj):
+    """把对象序列化成一行 SSE data。"""
+
+    return (
+        'data: '
+        + json.dumps(obj, ensure_ascii=False)
+        + '\n\n'
+    )
+
+
+@chat_bp.route('/api/chat/stream', methods=['POST'])
+def api_chat_stream():
+
+    if 'userid' not in session:
+        return jsonify({
+            'success': False,
+            'message': '请先登录'
+        }), 401
+
+    user_id = session.get('userid')
+    data = request.get_json(silent=True) or {}
+    context, error = _prepare_stream_chat_context(user_id, data)
+
+    if error:
+        return error
+
+    def generate():
+        # 先告知前端本次是否使用历史记忆
+        yield _sse_data({
+            'type': 'start',
+            'memory_used': context['memory_used']
+        })
+
+        # 拍图题在 AI 回答开始前先完成分类，回答结束立即带回分类结果
+        classification = None
+        saved_question = context['question']
+        classification_done = False
+
+        if context['image_base64']:
+            classification_done = True
+
+            try:
+                classification = ai_service.classify_question(
+                    context['question'],
+                    context['image_base64']
+                )
+
+                if classification:
+                    saved_question = (
+                        classification.get('question')
+                        or context['question']
+                    )
+
+                    if not classification.get('major'):
+                        classification = None
+            except Exception as e:
+                classification = None
+                print('回答前预分类失败（不影响回答）:', e)
+
+        raw_parts = []
+        has_error = False
+        error_message = 'AI 服务暂时不可用，请稍后重试'
+
+        try:
+            for event in ai_service.stream_complete_ai_answer(
+                context['ai_messages']
+            ):
+                etype = event.get('type')
+
+                if etype == 'content':
+                    raw_parts.append(event.get('text') or '')
+                    yield _sse_data({
+                        'type': 'delta',
+                        'text': event.get('text') or ''
+                    })
+                elif etype == 'error':
+                    has_error = True
+                    error_message = (
+                        event.get('message')
+                        or error_message
+                    )
+        except Exception as e:
+            has_error = True
+            error_message = str(e) or error_message
+            print('流式回答失败:', e)
+
+        raw_reply = ''.join(raw_parts)
+
+        if not raw_reply:
+            _save_stream_question_only(context)
+            yield _sse_data({
+                'type': 'error',
+                'message': error_message
+            })
+            return
+
+        has_error = False
+        reply = ai_service.format_ai_output(raw_reply)
+
+        try:
+            extra = _finalize_stream_chat(
+                context,
+                reply,
+                classification,
+                saved_question,
+                classification_done
+            )
+        except Exception as e:
+            has_error = True
+            error_message = '回答保存失败，请稍后重试'
+            print('流式回答收尾失败:', e)
+
+        if has_error:
+            yield _sse_data({
+                'type': 'error',
+                'message': error_message
+            })
+            return
+
+        yield _sse_data({
+            'type': 'done',
+            'reply': reply,
+            **extra
+        })
+
+    return Response(
+        stream_with_context(generate()),
+        mimetype='text/event-stream',
+        headers={
+            'Cache-Control': 'no-cache',
+            'X-Accel-Buffering': 'no',
+            'Connection': 'keep-alive'
+        }
+    )
 
 
 # ============================================================
