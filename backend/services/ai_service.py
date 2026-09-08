@@ -23,6 +23,10 @@ AI_API_URL = Config.AI_API_URL
 AI_API_KEY = Config.AI_API_KEY
 AI_MODEL = Config.AI_MODEL
 
+# agnes-2.5-flash 文档标注最大输出为 65.5K token；
+# 主回答给足预算，避免长答案被截断后出现“停一下再续写”。
+AI_ANSWER_MAX_TOKENS = 16000
+
 
 # 大类
 MAJOR_CATEGORIES = [
@@ -94,7 +98,7 @@ def call_ai(messages, max_tokens=2000, json_mode=False):
         return None, None
 
 
-def complete_ai_answer(messages, max_tokens=4000):
+def complete_ai_answer(messages, max_tokens=AI_ANSWER_MAX_TOKENS):
     """调用 AI，若回答被截断则自动续写，返回完整回答文本；失败返回 None。"""
 
     content, finish_reason = call_ai(
@@ -129,6 +133,294 @@ def complete_ai_answer(messages, max_tokens=4000):
             content = content + '\n' + extra
 
     return content
+
+
+# ============================================================
+# AI 流式调用（SSE）
+# ============================================================
+
+def iter_ai_chunks(messages, max_tokens=2000, json_mode=False):
+    """流式调用 OpenAI 兼容接口，逐段产出事件 dict。
+
+    type 为 content / finish / error 之一：
+    - content: {'type': 'content', 'text': '本段文字'}
+    - finish:  {'type': 'finish', 'reason': 'stop' 或 'length'}
+    - error:   {'type': 'error', 'message': '错误说明'}
+    """
+
+    if not AI_API_KEY:
+        print(
+            'AI 流式调用失败: 未配置 AI_API_KEY'
+            '（请在 .env 中填写）'
+        )
+        yield {
+            'type': 'error',
+            'message': 'AI_API_KEY 未配置'
+        }
+        return
+
+    payload = {
+        'model': AI_MODEL,
+        'messages': messages,
+        'max_tokens': max_tokens,
+        'temperature': 0.7,
+        'stream': True
+    }
+
+    if json_mode:
+        payload['response_format'] = {'type': 'json_object'}
+
+    try:
+        resp = requests.post(
+            AI_API_URL,
+            headers={
+                'Authorization': 'Bearer ' + AI_API_KEY,
+                'Content-Type': 'application/json'
+            },
+            json=payload,
+            stream=True,
+            timeout=(30, 180)
+        )
+        resp.raise_for_status()
+        resp.encoding = 'utf-8'
+
+        sse_seen = False
+        json_lines = []
+
+        # 不依赖 Content-Type：只要出现 data: 就按 SSE 处理；
+        # 完全没有 data: 时，把整段响应当普通 JSON 解析（兼容不支持流式的接口）。
+        for raw_line in resp.iter_lines(decode_unicode=True):
+            if not raw_line:
+                continue
+
+            line = raw_line.strip()
+
+            if not line:
+                continue
+
+            if line.startswith('data:'):
+                if not sse_seen:
+                    sse_seen = True
+                    json_lines = []
+
+                data_text = line[5:].strip()
+
+                if data_text == '[DONE]':
+                    yield {'type': 'finish', 'reason': 'stop'}
+                    return
+
+                if not data_text:
+                    continue
+
+                try:
+                    data = json.loads(data_text)
+                except Exception:
+                    continue
+
+                error = data.get('error')
+
+                if error:
+                    yield {
+                        'type': 'error',
+                        'message': (
+                            error.get('message')
+                            if isinstance(error, dict)
+                            else str(error)
+                        ) or 'AI 流式调用失败'
+                    }
+                    return
+
+                choices = data.get('choices') or []
+
+                if not choices:
+                    continue
+
+                choice = choices[0]
+                delta = choice.get('delta') or {}
+                text = delta.get('content')
+                finish_reason = choice.get('finish_reason')
+
+                if text:
+                    yield {'type': 'content', 'text': text}
+
+                if finish_reason:
+                    yield {
+                        'type': 'finish',
+                        'reason': finish_reason
+                    }
+                    return
+
+                continue
+
+            # SSE 的事件名等附加行忽略；已进入 SSE 后其余行不再参与 JSON 解析
+            if sse_seen:
+                continue
+
+            # 非流式响应可能是完整 JSON，也可能被换行美化
+            json_lines.append(line)
+
+        # 流正常结束但没给 finish 标记（可能是 [DONE] 前连接被关闭）
+        if sse_seen:
+            yield {'type': 'finish', 'reason': 'stop'}
+            return
+
+        # 非流式 JSON：读取完成后一次性解析
+        if json_lines:
+            try:
+                data = json.loads('\n'.join(json_lines))
+            except Exception as e:
+                print('AI 非流式响应解析失败:', e)
+                yield {'type': 'error', 'message': str(e)}
+                return
+
+            error = data.get('error')
+
+            if error:
+                yield {
+                    'type': 'error',
+                    'message': (
+                        error.get('message')
+                        if isinstance(error, dict)
+                        else str(error)
+                    ) or 'AI 流式调用失败'
+                }
+                return
+
+            choices = data.get('choices') or []
+            choice = choices[0] if choices else {}
+            message = choice.get('message') or {}
+            text = message.get('content')
+
+            if text:
+                yield {'type': 'content', 'text': text.strip()}
+
+            yield {
+                'type': 'finish',
+                'reason': choice.get('finish_reason') or 'stop'
+            }
+            return
+
+        yield {'type': 'finish', 'reason': 'stop'}
+    except Exception as e:
+        print('AI 流式调用失败:', e)
+        yield {'type': 'error', 'message': str(e)}
+
+
+def stream_complete_ai_answer(messages, max_tokens=AI_ANSWER_MAX_TOKENS):
+    """流式生成完整回答（与 complete_ai_answer 同语义）。
+
+    自动处理：
+    1. 回答被截断（finish_reason=length）时续写一次；
+    2. 接口不支持流式时回退到普通调用，保证仍能回答。
+    产出与 iter_ai_chunks 相同的事件 dict。
+    """
+
+    raw_parts = []
+    stream_ok = False
+    continued = False
+    current_messages = messages
+
+    try:
+        while True:
+            finish_reason = 'stop'
+            got_error = False
+            error_message = 'AI 流式调用失败'
+
+            for event in iter_ai_chunks(
+                current_messages,
+                max_tokens=max_tokens
+            ):
+                etype = event.get('type')
+
+                if etype == 'content':
+                    stream_ok = True
+                    raw_parts.append(event.get('text') or '')
+                    yield event
+                elif etype == 'finish':
+                    finish_reason = (
+                        event.get('reason') or 'stop'
+                    )
+                elif etype == 'error':
+                    got_error = True
+                    error_message = (
+                        event.get('message')
+                        or error_message
+                    )
+
+            if got_error and not stream_ok:
+                # 首次请求完全失败：回退到一次性接口
+                content = complete_ai_answer(
+                    messages,
+                    max_tokens=max_tokens
+                )
+
+                if content:
+                    yield {
+                        'type': 'content',
+                        'text': content
+                    }
+                    yield {
+                        'type': 'finish',
+                        'reason': 'stop'
+                    }
+                else:
+                    yield {
+                        'type': 'error',
+                        'message': error_message
+                    }
+                return
+
+            if (
+                finish_reason == 'length'
+                and not continued
+            ):
+                continued = True
+                current_messages = messages + [
+                    {
+                        'role': 'assistant',
+                        'content': ''.join(raw_parts)
+                    },
+                    {
+                        'role': 'user',
+                        'content': (
+                            '你的回答还没写完，请接着继续写完整，'
+                            '不要重复前面已经写过的内容，直接续写。'
+                        )
+                    }
+                ]
+                continue
+
+            # 续写失败时保留已生成的部分，不再报错
+            yield {
+                'type': 'finish',
+                'reason': (
+                    'stop'
+                    if got_error and raw_parts
+                    else finish_reason
+                )
+            }
+            return
+    except Exception as e:
+        print('流式生成回答失败:', e)
+        content = complete_ai_answer(
+            messages,
+            max_tokens=max_tokens
+        )
+
+        if content:
+            yield {
+                'type': 'content',
+                'text': content
+            }
+            yield {
+                'type': 'finish',
+                'reason': 'stop'
+            }
+        else:
+            yield {
+                'type': 'error',
+                'message': str(e)
+            }
 
 
 # ============================================================
@@ -270,6 +562,13 @@ def should_use_memory(question):
 
 def ai_decide_memory(question, memory_summary):
     """无法用关键词判断时，把语境交给 AI 判断是否需要历史记忆。"""
+
+    if (
+        not memory_summary
+        or question == '请分析这张图片'
+    ):
+        # 没有历史记录，或只是默认拍图分析，不需要再额外调用 AI 判断
+        return False
 
     try:
         summary_text = (

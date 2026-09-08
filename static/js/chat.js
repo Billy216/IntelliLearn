@@ -5,6 +5,7 @@
 
     let messages = [];
     let currentConversationId = convId ? parseInt(convId) : null; // 当前对话ID
+    let streamToken = 0; // 作废仍在进行的流式请求
 
     // 待发送的图片（用户通过 + 号选择，尚未发送）
     let pendingImageFile = null;   // 本地 File 对象
@@ -86,6 +87,30 @@
         }
         container.appendChild(msgDiv);
         container.scrollTop = container.scrollHeight;
+    }
+
+    // 显示“正在思考”气泡，返回该气泡元素（后续流式输出直接复用它）
+    function addThinkingMessage() {
+        const msgDiv = document.createElement('div');
+        msgDiv.className = 'message assistant';
+        msgDiv.innerHTML = '<span class="thinking-text">正在思考</span>' +
+            '<span class="thinking-dots"><i></i><i></i><i></i></span>';
+        container.appendChild(msgDiv);
+        container.scrollTop = container.scrollHeight;
+        return msgDiv;
+    }
+
+    function resetSendButton() {
+        sendBtn.disabled = false;
+        sendBtn.textContent = '发送';
+    }
+
+    function updateConversationUrl(id) {
+        if (!window.history || !window.history.pushState) return;
+        const params = new URLSearchParams();
+        if (imageUrl) params.set('img', imageUrl);
+        params.set('conv', id);
+        window.history.pushState({}, '', window.location.pathname + '?' + params.toString());
     }
 
     // 在 AI 回答下方展示分类结果 + 加入错题集按钮
@@ -277,6 +302,10 @@
 
     // ======================== 接口2：加载指定对话的历史消息 ========================
     function loadConversationDetail(id) {
+        // 若上一次回答还在流式输出，切走会话后不再让它写回页面
+        streamToken++;
+        resetSendButton();
+
         // 高亮切换
         document.querySelectorAll('.conversation').forEach(el => el.classList.remove('active'));
         const target = document.querySelector(`.conversation[data-id="${id}"]`);
@@ -343,8 +372,7 @@
             try {
                 imageToSend = await uploadImage(pendingImageFile);
             } catch (e) {
-                sendBtn.disabled = false;
-                sendBtn.textContent = '发送';
+                resetSendButton();
                 addMessage('assistant', '❌ ' + (e || '图片上传失败'));
                 return;
             }
@@ -365,6 +393,12 @@
         sendBtn.disabled = true;
         sendBtn.textContent = '发送中...';
 
+        // 记录本次请求令牌；切换会话/新对话后旧请求结果不再写入页面
+        const myToken = ++streamToken;
+
+        // AI 思考阶段先显示“正在思考”，首个字输出后自动替换为回答
+        const bubble = addThinkingMessage();
+
         // 组装请求体，附带当前对话ID（若存在）
         const payload = {
             image_url: imageToSend || '',
@@ -374,59 +408,238 @@
             payload.conversation_id = currentConversationId;
         }
 
-        fetch('/api/chat', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'same-origin',
-            body: JSON.stringify(payload)
-        })
-        .then(res => res.json())
-        .then(data => {
-            sendBtn.disabled = false;
-            sendBtn.textContent = '发送';
-            if (data.success && data.reply) {
-                // 如果后端返回了新的 conversation_id，更新本地
-                if (data.conversation_id) {
-                    currentConversationId = data.conversation_id;
-                    // 把会话ID写入URL，刷新后能恢复该会话
-                    if (window.history && window.history.pushState) {
-                        const params = new URLSearchParams();
-                        if (imageUrl) params.set('img', imageUrl);
-                        params.set('conv', currentConversationId);
-                        window.history.pushState({}, '', window.location.pathname + '?' + params.toString());
-                    }
-                    // 同时刷新侧边栏列表（新对话会出现）
-                    loadConversationList();
-                }
-                messages.push({ role: 'assistant', content: data.reply });
-                if (data.memory_used) {
-                    addMessage('assistant', '🧠 已参考你最近的提问记录\n\n' + data.reply);
-                } else {
-                    addMessage('assistant', data.reply);
-                }
-                // 拍图题目：展示分类并允许加入错题集
-                if (data.classification) {
-                    addClassificationBlock(
-                        data.classification,
-                        data.question || '',
-                        data.reply,
-                        data.image_url || ''
-                    );
-                }
-            } else {
-                addMessage('assistant', data.message || '抱歉，我没有收到有效回复。');
+        let response;
+
+        try {
+            response = await fetch('/api/chat/stream', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'same-origin',
+                body: JSON.stringify(payload)
+            });
+        } catch (err) {
+            if (myToken !== streamToken) return;
+            bubble.innerHTML = renderAssistantContent('❌ 网络错误，请稍后重试。');
+            resetSendButton();
+            container.scrollTop = container.scrollHeight;
+            return;
+        }
+
+        if (!response.ok) {
+            if (myToken !== streamToken) return;
+            let message = '请求失败，请稍后重试。';
+            try {
+                const data = await response.json();
+                message = data.message || message;
+            } catch (e) {
+                // 保持默认提示
             }
-        })
-        .catch(err => {
-            sendBtn.disabled = false;
-            sendBtn.textContent = '发送';
-            addMessage('assistant', '网络错误，请稍后重试。');
+            bubble.innerHTML = renderAssistantContent('❌ ' + message);
+            resetSendButton();
+            container.scrollTop = container.scrollHeight;
+            return;
+        }
+
+        if (!response.body) {
+            if (myToken !== streamToken) return;
+            bubble.innerHTML = renderAssistantContent('❌ 当前浏览器不支持流式输出，请稍后重试。');
+            resetSendButton();
+            container.scrollTop = container.scrollHeight;
+            return;
+        }
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder('utf-8');
+        let buffer = '';
+        let streamedText = '';
+        let memoryUsed = false;
+        let doneReceived = false;
+        let errorReceived = false;
+        let contentNode = null;
+
+        function renderStreamedBubble() {
+            const prefix = memoryUsed ? '🧠 已参考你最近的提问记录\n\n' : '';
+            bubble.innerHTML = renderAssistantContent(prefix + streamedText);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        // 流式阶段只把新文字追加到气泡里，避免每次都整条重绘
+        function ensureStreamContentNode() {
+            if (contentNode) return contentNode;
+
+            bubble.innerHTML = '';
+            contentNode = document.createElement('div');
+            contentNode.className = 'assistant-stream-text';
+            bubble.appendChild(contentNode);
+
+            if (memoryUsed) {
+                contentNode.appendChild(
+                    document.createTextNode(
+                        '🧠 已参考你最近的提问记录\n\n'
+                    )
+                );
+            }
+
+            return contentNode;
+        }
+
+        // 滚动合并刷新，避免高频滚动影响输入流畅度
+        let scrollTimer = null;
+
+        function scheduleStreamScroll() {
+            if (scrollTimer) return;
+            scrollTimer = setTimeout(function() {
+                scrollTimer = null;
+                if (myToken !== streamToken) return;
+                container.scrollTop = container.scrollHeight;
+            }, 40);
+        }
+
+        function handleStreamEvent(obj) {
+            if (myToken !== streamToken) return;
+
+            switch (obj.type) {
+                case 'start':
+                    memoryUsed = !!obj.memory_used;
+                    break;
+
+                case 'delta':
+                    // 第一个文字到达，自动覆盖“正在思考”提示
+                    streamedText += obj.text || '';
+                    ensureStreamContentNode().appendChild(
+                        document.createTextNode(obj.text || '')
+                    );
+                    scheduleStreamScroll();
+                    break;
+
+                case 'done':
+                    doneReceived = true;
+                    const finalReply = obj.reply || streamedText;
+                    memoryUsed = !!obj.memory_used;
+                    streamedText = finalReply;
+                    if (scrollTimer) {
+                        clearTimeout(scrollTimer);
+                        scrollTimer = null;
+                    }
+                    renderStreamedBubble();
+
+                    messages.push({ role: 'assistant', content: finalReply });
+
+                    if (obj.conversation_id) {
+                        currentConversationId = obj.conversation_id;
+                        updateConversationUrl(currentConversationId);
+                        // 刷新侧边栏列表（新对话会出现）
+                        loadConversationList();
+                    }
+
+                    // 拍图题目：展示分类并允许加入错题集
+                    if (obj.classification) {
+                        addClassificationBlock(
+                            obj.classification,
+                            obj.question || '',
+                            finalReply,
+                            obj.image_url || ''
+                        );
+                    }
+                    break;
+
+                case 'error':
+                    errorReceived = true;
+                    const errorText = '❌ ' + (
+                        obj.message
+                        || 'AI 服务暂时不可用，请稍后重试'
+                    );
+
+                    if (contentNode) {
+                        contentNode.appendChild(
+                            document.createTextNode('\n\n' + errorText)
+                        );
+                        container.scrollTop = container.scrollHeight;
+                    } else {
+                        bubble.innerHTML = renderAssistantContent(errorText);
+                        container.scrollTop = container.scrollHeight;
+                    }
+                    break;
+            }
+        }
+
+        try {
+            while (true) {
+                if (myToken !== streamToken) {
+                    reader.cancel();
+                    return;
+                }
+
+                const chunk = await reader.read();
+
+                if (myToken !== streamToken) {
+                    reader.cancel();
+                    return;
+                }
+
+                if (chunk.done) break;
+
+                buffer += decoder.decode(chunk.value, { stream: true });
+
+                // 逐行解析后端推送的 SSE data
+                let newlineIndex;
+
+                while ((newlineIndex = buffer.indexOf('\n')) !== -1) {
+                    const line = buffer.slice(0, newlineIndex).trim();
+                    buffer = buffer.slice(newlineIndex + 1);
+
+                    if (!line.startsWith('data:')) continue;
+
+                    const dataText = line.slice(5).trim();
+
+                    if (!dataText) continue;
+
+                    try {
+                        handleStreamEvent(JSON.parse(dataText));
+                    } catch (e) {
+                        console.error('解析流式数据失败:', e);
+                    }
+                }
+            }
+        } catch (err) {
+            if (myToken !== streamToken) return;
             console.error(err);
-        });
+
+            if (!doneReceived && !errorReceived) {
+                errorReceived = true;
+                const errorText = '❌ 网络中断，回答未完整接收，请重试。';
+
+                if (contentNode) {
+                    contentNode.appendChild(
+                        document.createTextNode('\n\n' + errorText)
+                    );
+                } else {
+                    bubble.innerHTML = renderAssistantContent(errorText);
+                }
+                container.scrollTop = container.scrollHeight;
+            }
+        } finally {
+            if (myToken === streamToken) {
+                resetSendButton();
+            }
+        }
+
+        // 流意外关闭且没有收到完成/错误标记时，保留已展示的部分
+        if (
+            myToken === streamToken
+            && !doneReceived
+            && !errorReceived
+            && streamedText.trim()
+        ) {
+            messages.push({ role: 'assistant', content: streamedText });
+        }
     }
 
     // ======================== 开启新对话 ========================
     function startNewChat() {
+        streamToken++;
+        resetSendButton();
+
         messages = [];
         container.innerHTML = '';
         currentConversationId = null;
@@ -452,7 +665,6 @@
             loadConversationDetail(currentConversationId);
         } else if (imageUrl) {
             // 有图片，自动分析
-            addMessage('assistant', '📷 收到图片，正在分析...');
             setTimeout(() => {
                 sendMessage('请分析这张图片');
             }, 300);
