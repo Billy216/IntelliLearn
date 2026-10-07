@@ -167,6 +167,17 @@
         togglePasswordVisibility(confirmInput, this);
     });
 
+    // 原密码显示/隐藏（改密需要先验证原密码）
+    const toggleOldPwd = document.getElementById('toggleOldPwd');
+    const oldPwdInput = document.getElementById('old_password');
+
+    if (toggleOldPwd && oldPwdInput) {
+        toggleOldPwd.addEventListener('click', function(e) {
+            e.preventDefault();
+            togglePasswordVisibility(oldPwdInput, this);
+        });
+    }
+
     // ========== 输入事件监听 ==========
     passwordInput.addEventListener('input', function() {
         const pwd = this.value;
@@ -241,8 +252,19 @@
             return;
         }
 
+        const oldPasswordInput = document.getElementById('old_password');
+
+        if (!oldPasswordInput || !oldPasswordInput.value) {
+            showToast('❌ 请输入原密码');
+            if (oldPasswordInput) {
+                oldPasswordInput.focus();
+            }
+            return;
+        }
+
         const data = {
             username: usernameInput.value.trim(),
+            old_password: oldPasswordInput.value,
             new_password: passwordInput.value
         };
 
@@ -254,15 +276,32 @@
             headers: {
                 'Content-Type': 'application/json'
             },
+            credentials: 'same-origin',
             body: JSON.stringify(data)
         })
-        .then(response => response.json())
+        .then(response => {
+            // 登录态失效时后端返回 401，直接引导重新登录，
+            // 不再笼统提示"网络异常"
+            if (response.status === 401) {
+                showToast('❌ 登录状态已失效，请重新登录');
+                setTimeout(() => {
+                    window.location.href = '/login';
+                }, 1200);
+                return null;
+            }
+
+            return response.json();
+        })
         .then(result => {
+            if (!result) {
+                return;
+            }
+
             if (result.success) {
                 showToast(`✅ ${result.message}`);
                 form.reset();
                 resetFormUI();
-                // 延迟跳转到登录页（重新登录）
+                // 延迟跳转到登录页（服务端已清空会话，需重新登录）
                 setTimeout(() => {
                     window.location.href = '/login';
                 }, 1500);
@@ -274,6 +313,7 @@
             }
         })
         .catch(error => {
+            console.error(error);
             showToast('❌ 网络异常，请稍后重试');
             submitBtn.disabled = false;
             submitBtn.textContent = '确认修改';

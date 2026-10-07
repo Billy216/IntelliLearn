@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>教师工作台 - IntelliLearn</title>
+    <link rel="icon" href="/static/pic/logo.png">
+    <link rel="stylesheet" href="/static/css/home.css">
+    <link rel="stylesheet" href="/static/css/teacher.css">
+    <link rel="stylesheet" href="/static/css/render.css">
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css"
+          crossorigin="anonymous">
+</head>
+
+<body data-role="{{ role }}">
+    <div class="main">
+        <div class="top_nav">
+            <a href="/home">
+                <div class="logo">
+                    <img src="/static/pic/logo.png" alt="">
+                    <span>IntelliLearn</span>
+                </div>
+            </a>
+            <nav>
+                <span class="role-badge">{{ role_name }}</span>
+                <img src="{{ avatar_path }}" alt="" class="img">
+                <a href="/user" class="nav-link">{{ real_name }}</a>
+            </nav>
+        </div>
+
+        <div class="container">
+            <div class="lf_nav">
+                <a href="/home">
+                    <div class="nav_item">🏠 工作台</div>
+                </a>
+                <a href="/chat">
+                    <div class="nav_item">💬 AI回答</div>
+                </a>
+                <a href="/exam">
+                    <div class="nav_item">📋 试卷生成</div>
+                </a>
+                <a href="/errors_register">
+                    <div class="nav_item">📒 错题集</div>
+                </a>
+                <a href="/practice">
+                    <div class="nav_item">✍️ 练习复习</div>
+                </a>
+                <a href="/resources">
+                    <div class="nav_item">📚 知识库与资源</div>
+                </a>
+                <a href="/teacher">
+                    <div class="active_lf">🧑‍🏫 教师工作台</div>
+                </a>
+                {% if role == 'admin' %}
+                <a href="/admin">
+                    <div class="nav_item">⚙️ 系统管理端</div>
+                </a>
+                {% endif %}
+            </div>
+
+            <div class="content teacher-content">
+                <div class="page-head">
+                    <h1>教师工作台</h1>
+                    <p class="page-sub" id="scopeNote">
+                        仅显示通过 teacher_courses 授权给你的班级；所有数据来自真实错题与练习记录。
+                    </p>
+                </div>
+
+                <div class="tabs" id="mainTabs">
+                    <button class="tab-btn active" data-tab="overview">班级学情</button>
+                    <button class="tab-btn" data-tab="student">学生报告</button>
+                    <button class="tab-btn" data-tab="tasks">复习任务与通知</button>
+                    <button class="tab-btn" data-tab="qa">学生答疑 <span class="tab-dot"
+                            id="qaDot" hidden></span></button>
+                    <button class="tab-btn" data-tab="review">错题标注纠正</button>
+                </div>
+
+                <!-- ================= 班级学情 ================= -->
+                <section class="tab-panel active" id="panel-overview">
+                    <div class="toolbar">
+                        <label class="field">
+                            <span>班级</span>
+                            <select id="overviewClass"><option value="">加载中…</option></select>
+                        </label>
+                        <label class="field">
+                            <span>课程（可选）</span>
+                            <select id="overviewCourse">
+                                <option value="">全部课程</option>
+                            </select>
+                        </label>
+                        <label class="field">
+                            <span>统计窗口</span>
+                            <select id="overviewDays">
+                                <option value="7">近 7 天</option>
+                                <option value="30" selected>近 30 天</option>
+                                <option value="90">近 90 天</option>
+                                <option value="3650">全部</option>
+                            </select>
+                        </label>
+                        <button class="btn-primary" id="loadOverviewBtn">刷新报表</button>
+                    </div>
+
+                    <div id="overviewStatus" class="status-line"></div>
+                    <div id="overviewBody" class="report-body"></div>
+                </section>
+
+                <!-- ================= 学生报告 ================= -->
+                <section class="tab-panel" id="panel-student">
+                    <div class="toolbar">
+                        <label class="field">
+                            <span>班级</span>
+                            <select id="studentClass"><option value="">加载中…</option></select>
+                        </label>
+                        <label class="field">
+                            <span>学生</span>
+                            <select id="studentSelect"><option value="">请先选择班级</option></select>
+                        </label>
+                        <label class="field">
+                            <span>课程（可选）</span>
+                            <select id="studentCourse">
+                                <option value="">全部课程</option>
+                            </select>
+                        </label>
+                        <button class="btn-primary" id="loadStudentBtn">查看报告</button>
+                    </div>
+
+                    <div id="studentStatus" class="status-line"></div>
+                    <div id="studentBody" class="report-body"></div>
+                </section>
+
+                <!-- ================= 复习任务与通知 ================= -->
+                <section class="tab-panel" id="panel-tasks">
+                    <div class="split">
+                        <div class="card">
+                            <h3>发布复习任务</h3>
+                            <div class="form-row">
+                                <label>班级</label>
+                                <select id="taskClass"><option value="">加载中…</option></select>
+                            </div>
+                            <div class="form-row">
+                                <label>课程（可选）</label>
+                                <select id="taskCourse">
+                                    <option value="">不指定课程</option>
+                                </select>
+                            </div>
+                            <div class="form-row">
+                                <label>标题</label>
+                                <input type="text" id="taskTitle" maxlength="150" placeholder="例如：第 8 周错题重做">
+                            </div>
+                            <div class="form-row">
+                                <label>任务说明</label>
+                                <textarea id="taskContent" rows="3"
+                                    placeholder="告诉学生要完成什么（可留空）"></textarea>
+                            </div>
+                            <div class="form-row">
+                                <label>截止时间</label>
+                                <input type="datetime-local" id="taskDue">
+                            </div>
+                            <div class="form-row">
+                                <label>关联练习卷 ID（可选）</label>
+                                <input type="number" id="taskPaper" min="1" placeholder="practice_papers.id">
+                            </div>
+                            <button class="btn-primary" id="createTaskBtn">发布任务</button>
+                            <p class="hint" id="taskResult"></p>
+                        </div>
+
+                        <div class="card">
+                            <h3>发布错题讲解通知</h3>
+                            <p class="hint">
+                                通知复用 learning_tasks 表，标题统一带「【错题讲解通知】」前缀，不新建数据表。
+                            </p>
+                            <div class="form-row">
+                                <label>班级</label>
+                                <select id="noticeClass"><option value="">加载中…</option></select>
+                            </div>
+                            <div class="form-row">
+                                <label>课程（可选）</label>
+                                <select id="noticeCourse">
+                                    <option value="">不指定课程</option>
+                                </select>
+                            </div>
+                            <div class="form-row">
+                                <label>标题</label>
+                                <input type="text" id="noticeTitle" maxlength="140" placeholder="例如：第 8 周错题讲解">
+                            </div>
+                            <div class="form-row">
+                                <label>讲解内容</label>
+                                <textarea id="noticeContent" rows="4"
+                                    placeholder="说明本次讲解的错题范围与要求"></textarea>
+                            </div>
+                            <button class="btn-primary" id="createNoticeBtn">发布通知</button>
+                            <p class="hint" id="noticeResult"></p>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h3>已发布的任务与通知</h3>
+                        <div class="toolbar">
+                            <label class="field">
+                                <span>按班级筛选</span>
+                                <select id="taskFilterClass"><option value="">全部班级</option></select>
+                            </label>
+                            <button class="btn-secondary" id="reloadTasksBtn">刷新列表</button>
+                        </div>
+                        <div id="taskListStatus" class="status-line"></div>
+                        <div id="taskList"></div>
+                    </div>
+                </section>
+
+                <!-- ================= 学生答疑 ================= -->
+                <section class="tab-panel" id="panel-qa">
+                    <div class="toolbar">
+                        <label class="field">
+                            <span>状态</span>
+                            <select id="qaStatus">
+                                <option value="">全部</option>
+                                <option value="open" selected>待回复</option>
+                                <option value="answered">已回复</option>
+                                <option value="closed">已关闭</option>
+                            </select>
+                        </label>
+                        <button class="btn-primary" id="loadQaBtn">刷新提问</button>
+                    </div>
+                    <div id="qaStatusLine" class="status-line"></div>
+                    <div id="qaList"></div>
+                </section>
+
+                <!-- ================= 错题标注纠正 ================= -->
+                <section class="tab-panel" id="panel-review">
+                    <div class="card">
+                        <h3>纠正学生的知识点 / 错误类型标注</h3>
+                        <p class="hint">
+                            只能修改你自己授课班级内学生的错题；服务端会再次校验错题归属，
+                            前端隐藏按钮不作为权限控制。
+                        </p>
+                        <div class="form-row">
+                            <label>错题 ID</label>
+                            <input type="number" id="reviewWqId" min="1" placeholder="wrong_questions.id">
+                        </div>
+                        <div class="form-row">
+                            <label>知识点</label>
+                            <input type="text" id="reviewKps" maxlength="255" placeholder="用、分隔，例如：无穷级数敛散性、交错级数">
+                        </div>
+                        <div class="form-row">
+                            <label>错误类型</label>
+                            <select id="reviewErrorType">
+                                <option value="">不修改</option>
+                            </select>
+                        </div>
+                        <div class="form-row">
+                            <label>掌握度</label>
+                            <select id="reviewMastery">
+                                <option value="">不修改</option>
+                                <option value="0">未掌握</option>
+                                <option value="1">模糊</option>
+                                <option value="2">已掌握</option>
+                            </select>
+                        </div>
+                        <button class="btn-primary" id="submitReviewBtn">提交标注修改</button>
+                        <p class="hint" id="reviewResult"></p>
+                    </div>
+
+                    <div class="card">
+                        <h3>把确认过的题目加入题库</h3>
+                        <p class="hint">写入 question_bank 时固定 verified=1、source='teacher'，表示教师已审核。</p>
+                        <div class="form-row">
+                            <label>课程 ID</label>
+                            <input type="number" id="bankCourse" min="1">
+                        </div>
+                        <div class="form-row">
+                            <label>章节 ID（可选）</label>
+                            <input type="number" id="bankChapter" min="1">
+                        </div>
+                        <div class="form-row">
+                            <label>学科</label>
+                            <input type="text" id="bankMajor" maxlength="50" placeholder="例如：高数">
+                        </div>
+                        <div class="form-row">
+                            <label>知识点</label>
+                            <input type="text" id="bankKp" maxlength="150">
+                        </div>
+                        <div class="form-row">
+                            <label>题型</label>
+                            <select id="bankQtype">
+                                <option value="choice">选择题</option>
+                                <option value="judge">判断题</option>
+                                <option value="fill">填空题</option>
+                                <option value="essay">解答题</option>
+                            </select>
+                        </div>
+                        <div class="form-row">
+                            <label>难度</label>
+                            <select id="bankDifficulty">
+                                <option value="1">简单</option>
+                                <option value="2" selected>中等</option>
+                                <option value="3">困难</option>
+                            </select>
+                        </div>
+                        <div class="form-row">
+                            <label>题干</label>
+                            <textarea id="bankQuestion" rows="3" placeholder="支持 $...$ LaTeX 公式"></textarea>
+                        </div>
+                        <div class="form-row">
+                            <label>选项（JSON 数组，可留空）</label>
+                            <input type="text" id="bankOptions" placeholder='["A. ...","B. ..."]'>
+                        </div>
+                        <div class="form-row">
+                            <label>答案</label>
+                            <textarea id="bankAnswer" rows="2"></textarea>
+                        </div>
+                        <div class="form-row">
+                            <label>解析</label>
+                            <textarea id="bankAnalysis" rows="3"></textarea>
+                        </div>
+                        <button class="btn-primary" id="submitBankBtn">加入题库</button>
+                        <p class="hint" id="bankResult"></p>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"
+            crossorigin="anonymous"></script>
+    <script src="/static/js/render.js"></script>
+    <script src="/static/js/teacher.js"></script>
+</body>
+
+</html>

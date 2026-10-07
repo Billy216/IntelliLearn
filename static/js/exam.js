@@ -19,32 +19,17 @@
     let currentMajor = '';
     let currentPaperId = null;
 
-    // ===== 上标转换 =====
-    const SUPERSCRIPT_MAP = {
-        '0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴', '5': '⁵',
-        '6': '⁶', '7': '⁷', '8': '⁸', '9': '⁹',
-        'a': 'ᵃ', 'b': 'ᵇ', 'c': 'ᶜ', 'd': 'ᵈ', 'e': 'ᵉ', 'f': 'ᶠ', 'g': 'ᵍ',
-        'h': 'ʰ', 'i': 'ⁱ', 'j': 'ʲ', 'k': 'ᵏ', 'l': 'ˡ', 'm': 'ᵐ', 'n': 'ⁿ',
-        'o': 'ᵒ', 'p': 'ᵖ', 'r': 'ʳ', 's': 'ˢ', 't': 'ᵗ', 'u': 'ᵘ', 'v': 'ᵛ',
-        'w': 'ʷ', 'x': 'ˣ', 'y': 'ʸ', 'z': 'ᶻ',
-        '+': '⁺', '-': '⁻', '=': '⁼', '(': '⁽', ')': '⁾'
-    };
-
-    function toSuperscript(text) {
-        return String(text).split('').map(ch => SUPERSCRIPT_MAP[ch] || ch).join('');
-    }
-
-    function convertPowerNotation(text) {
-        return String(text).replace(/\^(\{[^}]*\}|\([^)]*\)|[A-Za-z]+|\d+|.)/g, function(match, inner) {
-            if ((inner.startsWith('{') && inner.endsWith('}')) || (inner.startsWith('(') && inner.endsWith(')'))) {
-                inner = inner.slice(1, -1);
-            }
-            return toSuperscript(inner);
-        });
-    }
+    // ===== 内容渲染 =====
+    // 渲染统一交给 render.js（Markdown + KaTeX），
+    // 不再在本文件里重复实现上标转换，避免两套实现不一致。
+    const R = window.ILRender;
 
     function escapeHtml(text) {
-        return String(text)
+        if (R) {
+            return R.escapeHtml(text);
+        }
+
+        return String(text === null || text === undefined ? '' : text)
             .replace(/&/g, '&amp;')
             .replace(/</g, '&lt;')
             .replace(/>/g, '&gt;')
@@ -52,12 +37,17 @@
             .replace(/'/g, '&#39;');
     }
 
+    /**
+     * 把一段 AI 文本渲染成 HTML。
+     * 数学公式由 KaTeX 渲染；KaTeX 不可用时由 render.js 转成可读的纯文本公式，
+     * 不会把 LaTeX 源码直接展示给用户。
+     */
     function renderText(text) {
-        let html = escapeHtml(text);
-        html = convertPowerNotation(html);
-        html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
-        html = html.replace(/\n/g, '<br>');
-        return html;
+        if (R) {
+            return R.render(text);
+        }
+
+        return escapeHtml(text).replace(/\n/g, '<br>');
     }
 
     function displayMajorName(major) {

@@ -1,0 +1,279 @@
+/* ============================================================
+   AI 答疑页新增 UI（在 chat.css 之后加载）
+   仅包含本次完善新增的组件样式，不改动既有聊天样式。
+   ============================================================ */
+
+/* ---------- 顶部角色标签 ---------- */
+
+.role-badge {
+    margin-left: 8px;
+    padding: 2px 10px;
+    border-radius: 999px;
+    background: rgba(158, 98, 193, 0.15);
+    color: #7b3fa0;
+    font-size: 12px;
+    line-height: 1.8;
+}
+
+/* ---------- 历史对话搜索 ---------- */
+
+.chat-search {
+    padding: 6px 12px 8px;
+    flex-shrink: 0;
+}
+
+.chat-search input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 7px 10px;
+    border: 1px solid rgba(158, 98, 193, 0.28);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.85);
+    font-size: 13px;
+    font-family: inherit;
+    color: #333;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.chat-search input:focus {
+    border-color: #9e62c1;
+    box-shadow: 0 0 0 3px rgba(158, 98, 193, 0.12);
+}
+
+/* ---------- 侧边栏分组与功能入口 ---------- */
+
+.chat-sidebar-section {
+    padding: 12px 16px 4px;
+    font-size: 12px;
+    letter-spacing: 1px;
+    color: #94a3b8;
+    flex-shrink: 0;
+}
+
+.nav-entry {
+    font-size: 14px;
+    padding: 10px 16px;
+}
+
+.entry-icon {
+    margin-right: 8px;
+    font-size: 15px;
+}
+
+.user-entry {
+    margin-top: auto;
+    gap: 8px;
+}
+
+.entry-avatar {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.entry-name {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.entry-role {
+    font-size: 12px;
+    color: #94a3b8;
+}
+
+/* ---------- 会话条目 ---------- */
+
+.conversation {
+    display: block;
+    position: relative;
+}
+
+.conv-title-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 3px;
+}
+
+.conv-title {
+    flex: 1;
+    font-size: 14px;
+    font-weight: 600;
+    color: #374151;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.conv-major {
+    padding: 1px 7px;
+    border-radius: 999px;
+    background: #ede9fe;
+    color: #6d28d9;
+    font-size: 11px;
+    flex-shrink: 0;
+}
+
+.conv-tools {
+    display: none;
+    gap: 2px;
+    flex-shrink: 0;
+}
+
+.conversation:hover .conv-tools {
+    display: inline-flex;
+}
+
+.conv-tool {
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    font-size: 12px;
+    line-height: 1;
+    padding: 3px 4px;
+    border-radius: 5px;
+    opacity: 0.65;
+}
+
+.conv-tool:hover {
+    opacity: 1;
+    background: rgba(158, 98, 193, 0.18);
+}
+
+.conv-tool.danger:hover {
+    background: rgba(239, 68, 68, 0.16);
+}
+
+.conv-preview {
+    display: block;
+    font-size: 12px;
+    color: #94a3b8;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.conversation.active {
+    background: rgba(158, 98, 193, 0.16);
+    border-left: 3px solid #9e62c1;
+}
+
+/* ---------- 侧边栏空状态 / 错误状态 ---------- */
+
+.sidebar-empty,
+.sidebar-error {
+    padding: 14px 16px;
+    font-size: 13px;
+    line-height: 1.7;
+    color: #94a3b8;
+}
+
+.sidebar-error {
+    color: #b91c1c;
+}
+
+.sidebar-retry {
+    display: block;
+    margin-top: 8px;
+    padding: 4px 14px;
+    border: 1px solid #b91c1c;
+    border-radius: 6px;
+    background: transparent;
+    color: #b91c1c;
+    font-size: 13px;
+    cursor: pointer;
+    font-family: inherit;
+}
+
+.sidebar-retry:hover {
+    background: rgba(185, 28, 28, 0.08);
+}
+
+/* ---------- 消息气泡 ---------- */
+
+.message .il-content {
+    width: 100%;
+}
+
+.message.user .user-text {
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+/* 系统提示：与 AI 真实回答区分（虚线边框 + 灰底 + 居中） */
+.system-hint {
+    align-self: center;
+    max-width: 78%;
+    margin: 6px auto;
+    padding: 8px 16px;
+    background: rgba(148, 163, 184, 0.12);
+    border: 1px dashed rgba(148, 163, 184, 0.5);
+    border-radius: 10px;
+    color: #64748b;
+    font-size: 13px;
+    line-height: 1.7;
+    text-align: center;
+}
+
+/* AI 气泡内的折叠面板宽度 */
+.message.assistant .analysis-panel,
+.message.assistant .tag-row {
+    width: 100%;
+    margin-top: 10px;
+}
+
+/* 加入错题本按钮 */
+.wrong-btn {
+    padding: 6px 14px;
+    border: 1px solid #9e62c1;
+    border-radius: 8px;
+    background: #fff;
+    color: #7b3fa0;
+    font-size: 13px;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+}
+
+.wrong-btn:hover:not(:disabled) {
+    background: #9e62c1;
+    color: #fff;
+}
+
+.wrong-btn:disabled {
+    cursor: default;
+    opacity: 0.75;
+}
+
+.wrong-btn.done {
+    border-color: #16a34a;
+    color: #16a34a;
+    background: #f0fdf4;
+}
+
+/* ---------- 移动端 ---------- */
+
+@media (max-width: 768px) {
+    .chat-sidebar {
+        width: 170px;
+        min-width: 170px;
+    }
+
+    .chat-sidebar-item {
+        font-size: 14px;
+        padding: 10px 12px;
+    }
+
+    .conv-tools {
+        display: inline-flex;
+        opacity: 0.6;
+    }
+
+    .system-hint {
+        max-width: 92%;
+    }
+}

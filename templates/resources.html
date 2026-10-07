@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>本校知识库与学习资源 - IntelliLearn</title>
+    <link rel="icon" href="/static/pic/logo.png">
+    <link rel="stylesheet" href="/static/css/home.css">
+    <link rel="stylesheet" href="/static/css/resources.css">
+    <link rel="stylesheet" href="/static/css/render.css">
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css"
+          crossorigin="anonymous">
+</head>
+
+<body data-role="{{ role }}">
+    <div class="main">
+        <div class="top_nav">
+            <a href="/home">
+                <div class="logo">
+                    <img src="/static/pic/logo.png" alt="">
+                    <span>IntelliLearn</span>
+                </div>
+            </a>
+            <nav>
+                <span class="role-badge">{{ role_name }}</span>
+                <img src="{{ avatar_path }}" alt="" class="img">
+                <a href="/user" class="nav-link">{{ real_name }}</a>
+            </nav>
+        </div>
+
+        <div class="container">
+            <div class="lf_nav">
+                <a href="/home">
+                    <div class="nav_item">🏠 工作台</div>
+                </a>
+                <a href="/chat">
+                    <div class="nav_item">💬 AI回答</div>
+                </a>
+                <a href="/exam">
+                    <div class="nav_item">📋 试卷生成</div>
+                </a>
+                <a href="/errors_register">
+                    <div class="nav_item">📒 错题集</div>
+                </a>
+                <a href="/practice">
+                    <div class="nav_item">✍️ 练习复习</div>
+                </a>
+                <a href="/resources">
+                    <div class="active_lf">📚 知识库与资源</div>
+                </a>
+                {% if role in ('teacher', 'admin') %}
+                <a href="/teacher">
+                    <div class="nav_item">🧑‍🏫 教师工作台</div>
+                </a>
+                {% endif %}
+                {% if role == 'admin' %}
+                <a href="/admin">
+                    <div class="nav_item">⚙️ 系统管理端</div>
+                </a>
+                {% endif %}
+            </div>
+
+            <div class="content resource-content">
+                <div class="page-head">
+                    <h1>本校知识库与学习资源</h1>
+                    <p class="page-sub">
+                        课程、章节、知识点与资源全部来自本校数据库。
+                        项目内没有真实的校方课件与历年真题，凡标注
+                        <span class="demo-tag">演示数据（非真实校方资源）</span>
+                        的条目仅用于功能演示。
+                    </p>
+                </div>
+
+                <div class="tabs" id="mainTabs">
+                    <button class="tab-btn active" data-tab="search">资源检索</button>
+                    <button class="tab-btn" data-tab="recommend">根据我的易错点检索</button>
+                    <button class="tab-btn" data-tab="courses">课程与知识点</button>
+                    {% if role in ('teacher', 'admin') %}
+                    <button class="tab-btn" data-tab="manage">资源管理</button>
+                    <button class="tab-btn" data-tab="classmatch">班级薄弱点匹配</button>
+                    {% endif %}
+                </div>
+
+                <!-- ================= 资源检索 ================= -->
+                <section class="tab-panel active" id="panel-search">
+                    <div class="toolbar wrap">
+                        <label class="field">
+                            <span>关键词</span>
+                            <input type="text" id="fKeyword" placeholder="标题 / 描述 / 知识点">
+                        </label>
+                        <label class="field">
+                            <span>课程</span>
+                            <select id="fCourse"><option value="">全部课程</option></select>
+                        </label>
+                        <label class="field">
+                            <span>章节</span>
+                            <select id="fChapter"><option value="">全部章节</option></select>
+                        </label>
+                        <label class="field">
+                            <span>资源类型</span>
+                            <select id="fType"><option value="">全部类型</option></select>
+                        </label>
+                        <label class="field">
+                            <span>学科</span>
+                            <select id="fMajor"><option value="">全部学科</option></select>
+                        </label>
+                        <label class="field">
+                            <span>知识点</span>
+                            <input type="text" id="fKp" placeholder="例如：无穷级数">
+                        </label>
+                        <label class="field">
+                            <span>数据来源</span>
+                            <select id="fDemo">
+                                <option value="">全部</option>
+                                <option value="1">仅演示数据</option>
+                                <option value="0">仅真实资源</option>
+                            </select>
+                        </label>
+                        <button class="btn-primary" id="searchBtn">检索</button>
+                        <button class="btn-secondary" id="resetBtn">重置</button>
+                    </div>
+
+                    <div id="searchStatus" class="status-line"></div>
+                    <div id="searchResult" class="resource-grid"></div>
+                    <div class="pager" id="searchPager"></div>
+                </section>
+
+                <!-- ================= 易错点推荐 ================= -->
+                <section class="tab-panel" id="panel-recommend">
+                    <div class="toolbar">
+                        <button class="btn-primary" id="loadRecommendBtn">重新计算推荐</button>
+                        <span class="hint">推荐依据是你错题本里的真实知识点与学科；没有错题数据时不会有任何推荐。</span>
+                    </div>
+                    <div id="recommendStatus" class="status-line"></div>
+                    <div id="weakPointBox"></div>
+                    <div id="recommendResult" class="resource-grid"></div>
+                </section>
+
+                <!-- ================= 课程与知识点 ================= -->
+                <section class="tab-panel" id="panel-courses">
+                    <div class="toolbar">
+                        <button class="btn-primary" id="loadCoursesBtn">刷新课程结构</button>
+                    </div>
+                    <div id="coursesStatus" class="status-line"></div>
+                    <div id="coursesBody"></div>
+
+                    {% if role == 'admin' %}
+                    <div class="card">
+                        <h3>新建课程（仅管理员）</h3>
+                        <div class="form-row">
+                            <label>课程名称</label>
+                            <input type="text" id="newCourseName" maxlength="100" placeholder="例如：高等数学（上）">
+                        </div>
+                        <div class="form-row">
+                            <label>课程代码</label>
+                            <input type="text" id="newCourseCode" maxlength="50" placeholder="例如：MATH1001">
+                        </div>
+                        <div class="form-row">
+                            <label>学科</label>
+                            <input type="text" id="newCourseMajor" maxlength="50" placeholder="例如：高数">
+                        </div>
+                        <div class="form-row">
+                            <label>开课学院</label>
+                            <input type="text" id="newCourseCollege" maxlength="100">
+                        </div>
+                        <div class="form-row">
+                            <label>学分</label>
+                            <input type="number" id="newCourseCredit" step="0.5" min="0">
+                        </div>
+                        <button class="btn-primary" id="createCourseBtn">创建课程</button>
+                        <p class="hint" id="courseCreateResult"></p>
+                    </div>
+                    {% endif %}
+                </section>
+
+                {% if role in ('teacher', 'admin') %}
+                <!-- ================= 资源管理 ================= -->
+                <section class="tab-panel" id="panel-manage">
+                    <div class="card">
+                        <h3>新增资源</h3>
+                        <p class="hint">
+                            必须是真实存在的资料：填写站内 <code>/uploads/</code> 路径或外部链接。
+                            若是为了演示而临时创建，请勾选「标记为演示数据」，接口会写入 is_demo=1。
+                        </p>
+                        <div class="form-row">
+                            <label>标题</label>
+                            <input type="text" id="rTitle" maxlength="200">
+                        </div>
+                        <div class="form-row">
+                            <label>类型</label>
+                            <select id="rType"></select>
+                        </div>
+                        <div class="form-row">
+                            <label>课程</label>
+                            <select id="rCourse"><option value="">不指定</option></select>
+                        </div>
+                        <div class="form-row">
+                            <label>章节</label>
+                            <select id="rChapter"><option value="">不指定</option></select>
+                        </div>
+                        <div class="form-row">
+                            <label>知识点</label>
+                            <input type="text" id="rKp" maxlength="150">
+                        </div>
+                        <div class="form-row">
+                            <label>学科</label>
+                            <input type="text" id="rMajor" maxlength="50">
+                        </div>
+                        <div class="form-row">
+                            <label>站内文件路径</label>
+                            <input type="text" id="rFilePath" placeholder="/uploads/...">
+                        </div>
+                        <div class="form-row">
+                            <label>外部链接</label>
+                            <input type="text" id="rExternalUrl" placeholder="https://...">
+                        </div>
+                        <div class="form-row">
+                            <label>来源说明</label>
+                            <input type="text" id="rSource" maxlength="200" placeholder="例如：信息学院课程组">
+                        </div>
+                        <div class="form-row">
+                            <label>描述</label>
+                            <textarea id="rDescription" rows="3"></textarea>
+                        </div>
+                        <div class="form-row inline">
+                            <label>
+                                <input type="checkbox" id="rIsDemo">
+                                标记为演示数据（非真实校方资源）
+                            </label>
+                        </div>
+                        <button class="btn-primary" id="createResourceBtn">新增资源</button>
+                        <p class="hint" id="resourceCreateResult"></p>
+                    </div>
+
+                    <div class="card">
+                        <h3>批量导入真实校方资源（JSON 数组）</h3>
+                        <p class="hint">
+                            导入的资源默认 is_demo=0。数组元素字段：
+                            title、rtype、course_id、chapter_id、kp_name、major、
+                            description、file_path 或 external_url、source。
+                        </p>
+                        <div class="form-row">
+                            <label>JSON</label>
+                            <textarea id="importJson" rows="8" placeholder='[
+  {
+    "title": "高等数学（上）期末试卷 2024",
+    "rtype": "exam",
+    "course_id": 1,
+    "major": "高数",
+    "external_url": "https://example.edu.cn/exam/2024.pdf",
+    "source": "数学教研室"
+  }
+]'></textarea>
+                        </div>
+                        <button class="btn-primary" id="importBtn">导入</button>
+                        <p class="hint" id="importResult"></p>
+                    </div>
+                </section>
+
+                <!-- ================= 班级薄弱点匹配 ================= -->
+                <section class="tab-panel" id="panel-classmatch">
+                    <div class="toolbar">
+                        <label class="field">
+                            <span>班级</span>
+                            <select id="cmClass"><option value="">加载中…</option></select>
+                        </label>
+                        <button class="btn-primary" id="loadClassMatchBtn">查询匹配资源</button>
+                    </div>
+                    <div id="classMatchStatus" class="status-line"></div>
+                    <div id="classMatchBody"></div>
+                </section>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"
+            crossorigin="anonymous"></script>
+    <script src="/static/js/render.js"></script>
+    <script src="/static/js/resources.js"></script>
+</body>
+
+</html>

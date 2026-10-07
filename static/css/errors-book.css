@@ -1,0 +1,330 @@
+/* ============================================================
+   错题本新增组件样式（在 errors_register.css 之后加载）
+   ============================================================ */
+
+/* ---------- 顶部角色标签 ---------- */
+
+.role-badge {
+    margin-left: 8px;
+    padding: 2px 10px;
+    border-radius: 999px;
+    background: rgba(158, 98, 193, 0.15);
+    color: #7b3fa0;
+    font-size: 12px;
+    line-height: 1.8;
+}
+
+.nav-emoji {
+    margin-right: 6px;
+    font-size: 15px;
+}
+
+/* ---------- 搜索与筛选工具栏 ---------- */
+
+.book-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    padding: 14px 18px 6px;
+}
+
+.book-search {
+    flex: 1;
+    min-width: 180px;
+    padding: 8px 12px;
+    border: 1px solid rgba(158, 98, 193, 0.28);
+    border-radius: 8px;
+    background: #fff;
+    font-size: 14px;
+    font-family: inherit;
+    color: #333;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.book-search:focus {
+    border-color: #9e62c1;
+    box-shadow: 0 0 0 3px rgba(158, 98, 193, 0.12);
+}
+
+.filter-select {
+    padding: 8px 10px;
+    border: 1px solid rgba(158, 98, 193, 0.28);
+    border-radius: 8px;
+    background: #fff;
+    font-size: 14px;
+    font-family: inherit;
+    color: #333;
+    outline: none;
+    cursor: pointer;
+}
+
+.filter-select:focus {
+    border-color: #9e62c1;
+}
+
+.book-btn {
+    padding: 8px 16px;
+    border: 1px solid rgba(158, 98, 193, 0.45);
+    border-radius: 8px;
+    background: #fff;
+    color: #7b3fa0;
+    font-size: 14px;
+    font-family: inherit;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    transition: background 0.2s, color 0.2s;
+}
+
+.book-btn:hover:not(:disabled) {
+    background: rgba(158, 98, 193, 0.12);
+}
+
+.book-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.book-btn.primary {
+    background: #9e62c1;
+    border-color: #9e62c1;
+    color: #fff;
+}
+
+.book-btn.primary:hover:not(:disabled) {
+    background: #8a4fb0;
+}
+
+.book-btn.danger {
+    border-color: #ef4444;
+    color: #dc2626;
+}
+
+.book-btn.danger:hover:not(:disabled) {
+    background: rgba(239, 68, 68, 0.1);
+}
+
+.book-btn.link {
+    border-style: dashed;
+}
+
+/* ---------- 统计概览 ---------- */
+
+.book-stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+    padding: 4px 18px 10px;
+}
+
+.stat-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 84px;
+    padding: 8px 14px;
+    background: #fff;
+    border: 1px solid rgba(158, 98, 193, 0.18);
+    border-radius: 10px;
+}
+
+.stat-value {
+    font-size: 19px;
+    font-weight: 700;
+    color: #7b3fa0;
+    line-height: 1.3;
+}
+
+.stat-label {
+    font-size: 12px;
+    color: #94a3b8;
+}
+
+.stat-weak {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+    flex: 1;
+    min-width: 220px;
+}
+
+.stat-weak-title {
+    font-size: 13px;
+    color: #64748b;
+}
+
+/* ---------- 卡片补充 ---------- */
+
+.card-tag.error {
+    background: #fee2e2;
+    color: #b91c1c;
+}
+
+.card-mastery {
+    padding: 2px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    flex-shrink: 0;
+}
+
+.mastery-0 {
+    background: #fee2e2;
+    color: #b91c1c;
+}
+
+.mastery-1 {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.mastery-2 {
+    background: #dcfce7;
+    color: #15803d;
+}
+
+.card-footer {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.card-btn {
+    padding: 4px 12px;
+    border: 1px solid rgba(158, 98, 193, 0.4);
+    border-radius: 6px;
+    background: #fff;
+    color: #7b3fa0;
+    font-size: 13px;
+    font-family: inherit;
+    cursor: pointer;
+}
+
+.card-btn:hover {
+    background: rgba(158, 98, 193, 0.12);
+}
+
+.card-btn.danger {
+    border-color: rgba(239, 68, 68, 0.5);
+    color: #dc2626;
+}
+
+.card-btn.danger:hover {
+    background: rgba(239, 68, 68, 0.1);
+}
+
+.card-time {
+    margin-left: auto;
+    font-size: 12px;
+    color: #94a3b8;
+}
+
+/* 卡片高度自适应（原样式固定 120px，长题目会被裁掉） */
+.question-card {
+    height: auto !important;
+    min-height: 120px;
+}
+
+.card-question {
+    -webkit-line-clamp: 3 !important;
+}
+
+/* ---------- 分页 ---------- */
+
+.book-pager {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 14px;
+    padding: 12px 0 20px;
+}
+
+.page-info {
+    font-size: 14px;
+    color: #64748b;
+}
+
+/* ---------- 弹窗补充 ---------- */
+
+.modal-image {
+    display: block;
+    max-width: 100%;
+    margin-top: 10px;
+    border-radius: 8px;
+}
+
+.modal-edit {
+    margin-top: 16px;
+    padding-top: 14px;
+    border-top: 1px dashed #e5e7eb;
+}
+
+.modal-edit h4 {
+    margin: 0 0 10px;
+    font-size: 15px;
+    color: #7b3fa0;
+}
+
+.edit-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.edit-row .book-search,
+.edit-row .filter-select {
+    flex: 1;
+    min-width: 140px;
+}
+
+/* ---------- 提示条 ---------- */
+
+.book-toast {
+    position: fixed;
+    left: 50%;
+    bottom: 40px;
+    transform: translateX(-50%) translateY(20px);
+    max-width: 80vw;
+    padding: 10px 20px;
+    background: rgba(31, 41, 55, 0.92);
+    color: #fff;
+    font-size: 14px;
+    border-radius: 10px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s, transform 0.25s;
+    z-index: 9999;
+}
+
+.book-toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+}
+
+/* ---------- 移动端 ---------- */
+
+@media (max-width: 768px) {
+    .book-toolbar {
+        padding: 10px 12px 4px;
+    }
+
+    .book-search,
+    .filter-select,
+    .book-btn {
+        font-size: 13px;
+    }
+
+    .book-stats {
+        padding: 4px 12px 8px;
+    }
+
+    .question-card {
+        min-height: 100px;
+    }
+}

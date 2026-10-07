@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>个性化练习与复习卷 - IntelliLearn</title>
+    <link rel="icon" href="/static/pic/logo.png">
+    <link rel="stylesheet" href="/static/css/home.css">
+    <link rel="stylesheet" href="/static/css/practice.css">
+    <link rel="stylesheet" href="/static/css/render.css">
+    <!-- 数学公式渲染：KaTeX；加载失败时 render.js 会自动降级为可读纯文本 -->
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css"
+          crossorigin="anonymous">
+</head>
+
+<body>
+    <div class="main">
+        <div class="top_nav">
+            <a href="/home">
+                <div class="logo">
+                    <img src="/static/pic/logo.png" alt="">
+                    <span>SAMS</span>
+                </div>
+            </a>
+            <div class="info">
+                <nav>
+                    <img src="{{ avatar_path }}" alt="" class="img">
+                    <a href="/user" class="nav-link">{{ real_name }}</a>
+                </nav>
+            </div>
+        </div>
+        <div class="container">
+            <div class="lf_nav">
+                <a href="/chat">
+                    <div class="nav_item">
+                        <svg t="1745119656844" class="icon" viewBox="0 0 1024 1024" version="1.1"
+                            xmlns="http://www.w3.org/2000/svg" p-id="4843" width="24" height="24">
+                            <path
+                                d="M498.176 546.304c-133.12 0-241.152-108.032-241.152-241.152s108.032-241.152 241.152-241.152 241.152 108.032 241.152 241.152-108.032 241.152-241.152 241.152z m0-431.104c-104.96 0-189.952 84.992-189.952 189.952s84.992 189.952 189.952 189.952 189.952-84.992 189.952-189.952-84.992-189.952-189.952-189.952z"
+                                fill="#9e62c1" p-id="4844"></path>
+                            <path
+                                d="M856.576 920.064c-14.336 0-25.6-11.264-25.6-25.6 0-183.808-149.504-332.8-332.8-332.8s-332.8 149.504-332.8 332.8c0 14.336-11.264 25.6-25.6 25.6s-25.6-11.264-25.6-25.6c0-211.968 172.544-384 384-384 211.968 0 384 172.544 384 384 0 13.824-11.264 25.6-25.6 25.6z"
+                                fill="#9e62c1" p-id="4845"></path>
+                        </svg>
+                        AI回答
+                    </div>
+                </a>
+                <a href="/exam">
+                    <div class="nav_item">
+                        <svg t="1729503665982" class="icon" viewBox="0 0 1024 1024" version="1.1"
+                            xmlns="http://www.w3.org/2000/svg" p-id="7493" width="24" height="24">
+                            <path
+                                d="M653.5168 221.115733V195.925333c0-13.9264 11.195733-25.224533 24.9856-25.224533 13.789867 0 24.9856 11.298133 24.9856 25.258667v25.1904h58.2656C812.373333 221.115733 853.333333 262.5536 853.333333 313.617067v134.587733c0 13.9264-11.195733 25.258667-24.9856 25.258667a25.088 25.088 0 0 1-24.951466-25.258667v-58.88H220.603733v361.6768c0 23.210667 18.6368 42.052267 41.642667 42.052267h166.5024c13.789867 0 24.9856 11.264 24.9856 25.224533 0 13.9264 11.195733 25.258667-24.9856 25.258667H262.2464C211.626667 843.502933 170.666667 802.065067 170.666667 754.967467V313.6512c0-51.0976 40.994133-92.501333 91.579733-92.501333H320.512v-25.258667c0-13.9264 11.195733-25.224533 24.9856-25.224533 13.789867 0 24.9856 11.298133 24.9856 25.258666v25.1904h283.0336z m0 50.4832h-283.0336v25.224534c0 13.9264-11.195733 25.258667-24.9856 25.258667a25.088 25.088 0 0 1-24.9856-25.258666v-25.258667H262.2464c-23.005867 0-41.642667 18.8416-41.642667 42.0864v25.224533h582.792534v-25.258666c0-23.210667-18.6368-42.018133-41.642667-42.018134H703.488v25.224534c0 13.9264-11.195733 25.258667-24.9856 25.258666a25.088 25.088 0 0 1-24.9856-25.258666v-25.258667z"
+                                fill="#9e62c1" p-id="7494"></path>
+                        </svg>
+                        试卷生成
+                    </div>
+                </a>
+                <a href="/errors_register">
+                    <div class="nav_item">
+                        <svg t="1729435095167" class="icon" viewBox="0 0 1024 1024" version="1.1"
+                            xmlns="http://www.w3.org/2000/svg" p-id="1825" width="24" height="24">
+                            <path
+                                d="M938.24 129.706667c0-18.773333-15.36-34.133333-34.133333-34.133334-6.4 0-11.946667 1.706667-17.066667 4.693334L124.16 503.04c-11.093333 5.546667-18.346667 17.92-18.346667 30.72s7.253333 24.32 18.773334 30.293333l197.973333 108.373334c5.12 2.133333 10.666667 3.413333 15.36 3.413333 13.226667 0 24.746667-7.253333 30.72-18.773333 8.106667-16.64 1.28-37.546667-15.36-46.08l-138.24-78.08 553.813333-293.546667-348.16 423.253333c-5.12 6.826667-8.106667 14.506667-8.106666 22.186667v209.493333c0 18.346667 15.786667 34.133333 34.133333 34.133334s34.133333-15.786667 34.133333-25.6v-196.693333l370.773334-451.413333-71.68 574.293333L571.733333 721.066667c-4.266667-2.56-9.386667-3.413333-14.933333-3.413334-13.226667 0-24.746667 7.253333-30.72 19.2-3.84 8.106667-4.693333 17.493333-1.706667 26.026667 2.986667 8.96 8.96 15.786667 17.066667 19.626667l251.306667 118.613333c4.266667 2.56 9.386667 3.413333 14.933333 3.413333 5.12 0 10.666667-1.28 15.786667-3.84 9.813333-5.12 16.64-14.506667 17.92-25.173333l96.853333-741.546667v-1.28-2.986666z"
+                                fill="#9e62c1" p-id="1826"></path>
+                        </svg>
+                        错题集
+                    </div>
+                </a>
+                <a href="/practice">
+                    <div class="active_lf">
+                        <svg t="1729503700000" class="icon" viewBox="0 0 1024 1024" version="1.1"
+                            xmlns="http://www.w3.org/2000/svg" p-id="8801" width="24" height="24">
+                            <path
+                                d="M832 128H192c-35.2 0-64 28.8-64 64v640c0 35.2 28.8 64 64 64h640c35.2 0 64-28.8 64-64V192c0-35.2-28.8-64-64-64z m0 704H192V192h640v640z"
+                                fill="#9e62c1" p-id="8802"></path>
+                            <path d="M320 320h384v64H320zM320 480h384v64H320zM320 640h256v64H320z" fill="#9e62c1"
+                                p-id="8803"></path>
+                        </svg>
+                        个性化练习
+                    </div>
+                </a>
+                <a href="/resources">
+                    <div class="nav_item">
+                        <span class="nav-emoji">📚</span>
+                        学习资源
+                    </div>
+                </a>
+            </div>
+
+            <div class="content">
+                <div class="pr-head">
+                    <h2>个性化练习与复习卷</h2>
+                    <p>按你的错题与薄弱知识点组卷 · 服务端判分 · 提交后可回顾解析并把错题加入错题本</p>
+                </div>
+
+                <!-- 组卷筛选 -->
+                <div class="pr-toolbar">
+                    <div class="pr-field">
+                        <label class="pr-label" for="prMajor">学科</label>
+                        <select id="prMajor" class="pr-select">
+                            <option value="">全部学科</option>
+                        </select>
+                    </div>
+                    <div class="pr-field">
+                        <label class="pr-label" for="prKp">知识点</label>
+                        <select id="prKp" class="pr-select">
+                            <option value="">全部知识点</option>
+                        </select>
+                    </div>
+                    <div class="pr-field">
+                        <label class="pr-label" for="prQtype">题型</label>
+                        <select id="prQtype" class="pr-select">
+                            <option value="">不限题型</option>
+                        </select>
+                    </div>
+                    <div class="pr-field">
+                        <label class="pr-label" for="prDifficulty">难度</label>
+                        <select id="prDifficulty" class="pr-select">
+                            <option value="">不限难度</option>
+                        </select>
+                    </div>
+                    <div class="pr-field">
+                        <label class="pr-label" for="prErrorType">错误类型</label>
+                        <select id="prErrorType" class="pr-select">
+                            <option value="">不限错误类型</option>
+                        </select>
+                    </div>
+                    <div class="pr-field">
+                        <label class="pr-label" for="prMastery">掌握度</label>
+                        <select id="prMastery" class="pr-select">
+                            <option value="">不限掌握度</option>
+                        </select>
+                    </div>
+                    <div class="pr-field">
+                        <label class="pr-label" for="prCourse">课程</label>
+                        <select id="prCourse" class="pr-select">
+                            <option value="">不限课程</option>
+                        </select>
+                    </div>
+                    <div class="pr-field">
+                        <label class="pr-label" for="prSource">组卷方式</label>
+                        <select id="prSource" class="pr-select">
+                            <option value="auto">错题优先（题库补充）</option>
+                            <option value="wrong">只用我的错题</option>
+                            <option value="bank">只用共享题库</option>
+                        </select>
+                    </div>
+                    <div class="pr-field">
+                        <label class="pr-label" for="prCount">题量</label>
+                        <input id="prCount" class="pr-input pr-count" type="number" min="1" max="30" value="10">
+                    </div>
+                    <div class="pr-field pr-switches">
+                        <label class="pr-check"><input type="checkbox" id="prAllowAi" checked> 题目不足时允许 AI 补题</label>
+                        <label class="pr-check"><input type="checkbox" id="prVerifiedOnly" checked> 只取已人工校验的题库题</label>
+                    </div>
+                    <button id="prGenerateBtn" class="btn-upload pr-generate-btn">生成练习卷</button>
+                    <div class="pr-status" id="prStatus"></div>
+                </div>
+
+                <div class="pr-notices" id="prNotices" hidden></div>
+
+                <!-- 统计 -->
+                <section class="pr-card" id="prStatsCard">
+                    <div class="pr-card-head">
+                        <h3>我的练习统计</h3>
+                        <button class="pr-link-btn" id="prStatsRefresh">刷新统计</button>
+                    </div>
+                    <div class="pr-stats-body" id="prStats"></div>
+                </section>
+
+                <!-- 教师复习任务 -->
+                <section class="pr-card" id="prTasksCard">
+                    <div class="pr-card-head">
+                        <h3>教师复习任务</h3>
+                        <button class="pr-link-btn" id="prTasksRefresh">刷新任务</button>
+                    </div>
+                    <div class="pr-tasks-body" id="prTasks"></div>
+                </section>
+
+                <!-- 练习历史 -->
+                <section class="pr-card" id="prHistoryCard">
+                    <div class="pr-card-head">
+                        <h3>练习题历史</h3>
+                        <button class="pr-link-btn" id="prHistoryRefresh">刷新历史</button>
+                    </div>
+                    <div class="pr-history-body" id="prHistory"></div>
+                </section>
+
+                <!-- 试卷区 -->
+                <section class="pr-paper-card" id="prPaperCard" hidden>
+                    <div class="pr-paper-head">
+                        <h2 id="prPaperTitle">练习卷</h2>
+                        <p id="prPaperMeta"></p>
+                    </div>
+                    <div class="pr-notices" id="prPaperNotices" hidden></div>
+                    <div class="pr-questions" id="prQuestions"></div>
+                    <div class="pr-actions" id="prActions">
+                        <button id="prSubmitBtn" class="btn-upload pr-action-btn">提交并判分</button>
+                        <button id="prPrintBtn" class="btn-ghost">打印 / 导出 PDF</button>
+                        <button id="prCloseBtn" class="btn-ghost">收起</button>
+                    </div>
+                    <div class="pr-summary" id="prSummary" hidden></div>
+                    <div class="pr-wrongbook-actions" id="prWrongbookActions" hidden>
+                        <button id="prWrongAllBtn" class="btn-upload pr-action-btn">把本次错题全部加入错题本</button>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"
+            crossorigin="anonymous"></script>
+    <script src="/static/js/render.js"></script>
+    <script src="/static/js/practice.js"></script>
+</body>
+
+</html>

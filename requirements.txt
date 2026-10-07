@@ -1,0 +1,28 @@
+# IntelliLearn 运行依赖
+# 安装：pip install -r requirements.txt
+#
+# 当前环境实测版本（Python 3.14）：
+#   Flask 3.1.3 / bcrypt 5.0.0 / PyMySQL 1.2.0 / python-dotenv 1.2.3 / requests 2.34.2
+
+Flask>=3.0,<4.0
+Werkzeug>=3.0,<4.0
+Jinja2>=3.1,<4.0
+itsdangerous>=2.1,<3.0
+
+# MySQL 访问（使用 DictCursor）
+PyMySQL>=1.1,<2.0
+
+# 密码哈希
+bcrypt>=4.0
+
+# 读取 .env
+python-dotenv>=1.0
+
+# 调用 AI 接口
+requests>=2.31
+
+# 说明：
+# - 未引入 Flask-Login / Flask-SQLAlchemy 等框架，权限与会话校验由
+#   backend/utils/security.py 自行实现，数据库访问统一走 PyMySQL 参数化查询；
+# - 数学公式渲染（KaTeX）通过 CDN 引入，不需要 Python 依赖；
+# - 生产部署建议额外安装 waitress 或 gunicorn（见 README）。

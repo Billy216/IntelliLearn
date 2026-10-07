@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SAMS 学校活动管理系统</title>
+    <title>IntelliLearn 校园 AI 学业辅助系统</title>
     <link rel="icon" href="/static/pic/logo.png">
     <link rel="stylesheet" href="/static/css/home.css">
     <link rel="stylesheet" href="/static/css/white.css">
@@ -14,7 +14,7 @@
             <a href="/home">
                 <div class="logo">
                     <img src="/static/pic/logo.png" alt="">
-                    <span>SAMS</span>
+                    <span>IntelliLearn</span>
                 </div>
             </a>
             <nav>
@@ -42,17 +42,46 @@
                         错题集
                     </div>
                 </a>
+                <a href="/practice">
+                    <div class="nav_item">
+                        <span class="nav-emoji">✍️</span>
+                        练习复习
+                    </div>
+                </a>
+                <a href="/resources">
+                    <div class="nav_item">
+                        <span class="nav-emoji">📚</span>
+                        学习资源
+                    </div>
+                </a>
+                {% if role in ['teacher', 'admin'] %}
+                <a href="/teacher">
+                    <div class="nav_item">
+                        <span class="nav-emoji">🎓</span>
+                        教师工作台
+                    </div>
+                </a>
+                {% endif %}
+                {% if role == 'admin' %}
+                <a href="/admin">
+                    <div class="nav_item">
+                        <span class="nav-emoji">⚙️</span>
+                        系统管理
+                    </div>
+                </a>
+                {% endif %}
             </div>
             <div class="content white-content">
                 <div class="welcome-card">
                     <div class="welcome-emoji">👋</div>
-                    <h1 class="welcome-title">你好，{{ username }}</h1>
-                    <p class="welcome-subtitle">欢迎回到 SAMS 学校活动管理系统</p>
+                    <h1 class="welcome-title">你好，{{ real_name }}</h1>
+                    <p class="welcome-subtitle">欢迎回到 IntelliLearn 校园 AI 学业辅助系统</p>
                     <p class="welcome-desc">今天也要元气满满哦～请从左侧选择你需要使用的功能，开启愉快的一天！</p>
                     <div class="welcome-actions">
                         <a href="/chat" class="welcome-btn welcome-btn-primary">💬 开始 AI 对话</a>
-                        <a href="/exam" class="welcome-btn">📋 查看试卷</a>
+                        <a href="/practice" class="welcome-btn">✍️ 做针对性练习</a>
                         <a href="/errors_register" class="welcome-btn">📒 错题回顾</a>
+                        <a href="/exam" class="welcome-btn">📋 生成试卷</a>
                     </div>
                 </div>
             </div>

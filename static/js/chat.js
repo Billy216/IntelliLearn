@@ -1,702 +1,1103 @@
-(function() {
-    const urlParams = new URLSearchParams(window.location.search);
-    const imageUrl = urlParams.get('img') || '';
-    const convId = urlParams.get('conv') || null;
+/**
+ * IntelliLearn AI 答疑页逻辑
+ *
+ * 设计原则：
+ *   - 所有会话数据都来自后端接口，前端不预置任何"演示对话"；
+ *   - 接口失败时显示真实错误并提供重试，绝不用假数据填充；
+ *   - 系统提示（欢迎语、状态）与 AI 生成内容使用不同样式区分。
+ */
+(function () {
+    'use strict';
 
-    let messages = [];
-    let currentConversationId = convId ? parseInt(convId) : null; // 当前对话ID
-    let streamToken = 0; // 作废仍在进行的流式请求
+    var R = window.ILRender;
 
-    // 待发送的图片（用户通过 + 号选择，尚未发送）
-    let pendingImageFile = null;   // 本地 File 对象
-    let pendingImageUrl = '';      // 本地预览 dataURL
+    // ======================== 状态 ========================
 
-    const container = document.getElementById('messagesContainer');
-    const input = document.getElementById('messageInput');
-    const sendBtn = document.getElementById('sendBtn');
-    const conversationListEl = document.getElementById('conversationList');
+    var urlParams = new URLSearchParams(window.location.search);
+    var initialImageUrl = urlParams.get('img') || '';
+    var initialConvId = urlParams.get('conv');
 
-    // 图片上传相关元素
-    const attachBtn = document.getElementById('attachBtn');
-    const imageInput = document.getElementById('imageInput');
-    const imagePreviewBar = document.getElementById('imagePreviewBar');
-    const previewImage = document.getElementById('previewImage');
-    const removeImageBtn = document.getElementById('removeImageBtn');
+    var currentConversationId = initialConvId ? parseInt(initialConvId, 10) : null;
+    var conversations = [];
+    var streamToken = 0;          // 作废仍在进行的流式请求
+    var isSending = false;
+    var lastRequest = null;       // 用于失败重试
 
-    // ======================== 上标转换（与后端一致） ========================
-    const SUPERSCRIPT_MAP = {
-        '0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴', '5': '⁵',
-        '6': '⁶', '7': '⁷', '8': '⁸', '9': '⁹',
-        'a': 'ᵃ', 'b': 'ᵇ', 'c': 'ᶜ', 'd': 'ᵈ', 'e': 'ᵉ', 'f': 'ᶠ', 'g': 'ᵍ',
-        'h': 'ʰ', 'i': 'ⁱ', 'j': 'ʲ', 'k': 'ᵏ', 'l': 'ˡ', 'm': 'ᵐ', 'n': 'ⁿ',
-        'o': 'ᵒ', 'p': 'ᵖ', 'r': 'ʳ', 's': 'ˢ', 't': 'ᵗ', 'u': 'ᵘ', 'v': 'ᵛ',
-        'w': 'ʷ', 'x': 'ˣ', 'y': 'ʸ', 'z': 'ᶻ',
-        '+': '⁺', '-': '⁻', '=': '⁼', '(': '⁽', ')': '⁾'
-    };
+    var pendingImageFile = null;  // 本地 File 对象
+    var pendingImageUrl = '';     // 本地预览 dataURL
 
-    function toSuperscript(text) {
-        return String(text).split('').map(ch => SUPERSCRIPT_MAP[ch] || ch).join('');
-    }
+    // ======================== DOM ========================
 
-    function convertPowerNotation(text) {
-        return String(text).replace(/\^(\{[^}]*\}|\([^)]*\)|[A-Za-z]+|\d+|.)/g, function(match, inner) {
-            if ((inner.startsWith('{') && inner.endsWith('}')) || (inner.startsWith('(') && inner.endsWith(')'))) {
-                inner = inner.slice(1, -1);
-            }
-            return toSuperscript(inner);
-        });
-    }
+    var container = document.getElementById('messagesContainer');
+    var input = document.getElementById('messageInput');
+    var sendBtn = document.getElementById('sendBtn');
+    var conversationListEl = document.getElementById('conversationList');
+    var searchInput = document.getElementById('convSearchInput');
 
-    // ======================== AI 回答文本渲染 ========================
+    var attachBtn = document.getElementById('attachBtn');
+    var imageInput = document.getElementById('imageInput');
+    var imagePreviewBar = document.getElementById('imagePreviewBar');
+    var previewImage = document.getElementById('previewImage');
+    var removeImageBtn = document.getElementById('removeImageBtn');
+
+    // ======================== 工具 ========================
+
     function escapeHtml(text) {
-        return String(text)
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;')
-            .replace(/'/g, '&#39;');
+        return R ? R.escapeHtml(text) : String(text || '');
     }
 
-    function renderAssistantContent(text) {
-        let html = escapeHtml(text);
-        html = convertPowerNotation(html);
-        // **加粗**
-        html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
-        // 换行
-        html = html.replace(/\n/g, '<br>');
-        return html;
+    function renderInto(element, text, options) {
+        if (R) {
+            R.renderInto(element, text, options);
+            return;
+        }
+
+        // render.js 未加载时的最小兜底：只做转义与换行
+        element.innerHTML = escapeHtml(text).replace(/\n/g, '<br>');
     }
 
-    // ======================== 工具函数 ========================
-    function addMessage(role, content, imgUrl = '') {
-        const msgDiv = document.createElement('div');
-        msgDiv.className = `message ${role}`;
-        if (role === 'user' && imgUrl) {
-            const img = document.createElement('img');
-            img.src = imgUrl;
-            img.className = 'image-preview';
-            img.alt = '上传图片';
-            msgDiv.appendChild(img);
+    function showToast(message) {
+        // 用页面内提示条替代 alert，避免阻塞输入
+        var bar = document.getElementById('mathLibWarning');
+        if (!bar) {
+            return;
+        }
+
+        bar.textContent = message;
+        bar.classList.add('show');
+
+        clearTimeout(bar._timer);
+        bar._timer = setTimeout(function () {
+            bar.classList.remove('show');
+        }, 4000);
+    }
+
+    function scrollToBottom() {
+        container.scrollTop = container.scrollHeight;
+    }
+
+    // ======================== 消息渲染 ========================
+
+    /**
+     * 追加一条消息。
+     * role: 'user' | 'assistant' | 'system'
+     */
+    function addMessage(role, content, imageUrl, options) {
+        options = options || {};
+
+        var wrapper = document.createElement('div');
+        wrapper.className = 'message ' + (role === 'system' ? 'system-hint' : role);
+
+        if (role === 'user') {
+            if (imageUrl) {
+                var img = document.createElement('img');
+                img.src = imageUrl;
+                img.className = 'image-preview';
+                img.alt = '上传的题目图片';
+                img.loading = 'lazy';
+                wrapper.appendChild(img);
+            }
+
             if (content) {
-                const textNode = document.createElement('div');
+                var textNode = document.createElement('div');
+                textNode.className = 'user-text';
                 textNode.textContent = content;
-                msgDiv.appendChild(textNode);
+                wrapper.appendChild(textNode);
             }
         } else {
-            msgDiv.innerHTML = renderAssistantContent(content || '');
+            var body = document.createElement('div');
+            body.className = 'il-content';
+
+            renderInto(body, content || '', {
+                plain: options.plain || ''
+            });
+
+            wrapper.appendChild(body);
         }
-        container.appendChild(msgDiv);
-        container.scrollTop = container.scrollHeight;
+
+        if (options.analysis) {
+            wrapper.appendChild(buildAnalysisPanel(options.analysis));
+        }
+
+        if (options.actions) {
+            wrapper.appendChild(options.actions);
+        }
+
+        container.appendChild(wrapper);
+        scrollToBottom();
+
+        return wrapper;
     }
 
-    // 显示“正在思考”气泡，返回该气泡元素（后续流式输出直接复用它）
-    function addThinkingMessage() {
-        const msgDiv = document.createElement('div');
-        msgDiv.className = 'message assistant';
-        msgDiv.innerHTML = '<span class="thinking-text">正在思考</span>' +
-            '<span class="thinking-dots"><i></i><i></i><i></i></span>';
-        container.appendChild(msgDiv);
-        container.scrollTop = container.scrollHeight;
-        return msgDiv;
+    /** 系统提示气泡（与 AI 真实回答区分开） */
+    function addSystemHint(text) {
+        var div = document.createElement('div');
+        div.className = 'system-hint';
+        div.textContent = text;
+        container.appendChild(div);
+        scrollToBottom();
+        return div;
     }
 
-    function resetSendButton() {
-        sendBtn.disabled = false;
-        sendBtn.textContent = '发送';
-    }
+    /**
+     * 识别结果 / 作答分析折叠面板。
+     * 只展示后端真实返回的字段，缺失的字段不渲染。
+     */
+    function buildAnalysisPanel(analysis) {
+        var panel = document.createElement('div');
+        panel.className = 'analysis-panel';
 
-    function updateConversationUrl(id) {
-        if (!window.history || !window.history.pushState) return;
-        const params = new URLSearchParams();
-        if (imageUrl) params.set('img', imageUrl);
-        params.set('conv', id);
-        window.history.pushState({}, '', window.location.pathname + '?' + params.toString());
-    }
+        var head = document.createElement('div');
+        head.className = 'analysis-head';
+        head.innerHTML = '<span>🔍 识别结果与作答分析</span>'
+            + '<span class="arrow">▶</span>';
 
-    // 在 AI 回答下方展示分类结果 + 加入错题集按钮
-    function addClassificationBlock(classification, question, answer, imageUrl) {
-        if (!classification || !classification.major) return;
-
-        const box = document.createElement('div');
-        box.className = 'classify-box';
-
-        const tags = document.createElement('div');
-        tags.className = 'classify-tags';
-        const majorTag = document.createElement('span');
-        majorTag.className = 'classify-tag major';
-        majorTag.textContent = '大类：' + displayMajorName(classification.major);
-        tags.appendChild(majorTag);
-        (classification.sub || []).forEach(sub => {
-            const subTag = document.createElement('span');
-            subTag.className = 'classify-tag sub';
-            subTag.textContent = '小类：' + sub;
-            tags.appendChild(subTag);
+        head.addEventListener('click', function () {
+            panel.classList.toggle('open');
         });
-        box.appendChild(tags);
 
-        const btn = document.createElement('button');
+        panel.appendChild(head);
+
+        var body = document.createElement('div');
+        body.className = 'analysis-body';
+
+        var tags = document.createElement('div');
+        tags.className = 'tag-row';
+
+        if (analysis.major) {
+            tags.appendChild(makeTag(
+                '学科：' + displayMajor(analysis.major),
+                'tag-major'
+            ));
+        }
+
+        (analysis.sub || []).forEach(function (sub) {
+            tags.appendChild(makeTag('章节：' + sub, 'tag-sub'));
+        });
+
+        (analysis.knowledge_points || []).forEach(function (kp) {
+            tags.appendChild(makeTag('知识点：' + kp, 'tag-kp'));
+        });
+
+        (analysis.error_types || []).forEach(function (type) {
+            tags.appendChild(makeTag('错误类型：' + type, 'tag-error'));
+        });
+
+        if (analysis.has_student_work) {
+            tags.appendChild(makeTag('已识别到你的作答', 'tag-warn'));
+        }
+
+        if (analysis.confidence === 'low') {
+            tags.appendChild(makeTag('识别把握较低', 'tag-warn'));
+        }
+
+        if (tags.children.length) {
+            body.appendChild(tags);
+        }
+
+        if (analysis.question_text) {
+            body.appendChild(makeAnalysisRow('识别题目', analysis.question_text));
+        }
+
+        if (analysis.unclear_reason) {
+            body.appendChild(makeAnalysisRow('未识别清楚', analysis.unclear_reason));
+        }
+
+        if (analysis.student_work) {
+            body.appendChild(makeAnalysisRow('你的作答', analysis.student_work));
+        }
+
+        if (analysis.error_analysis) {
+            body.appendChild(makeAnalysisRow('错因分析', analysis.error_analysis));
+        }
+
+        if (!body.children.length) {
+            body.appendChild(makeAnalysisRow(
+                '说明',
+                '本次未获得结构化识别结果。'
+            ));
+        }
+
+        panel.appendChild(body);
+
+        return panel;
+    }
+
+    function makeTag(text, className) {
+        var span = document.createElement('span');
+        span.className = 'tag ' + className;
+        span.textContent = text;
+        return span;
+    }
+
+    function makeAnalysisRow(label, value) {
+        var row = document.createElement('div');
+        row.className = 'analysis-row';
+
+        var labelEl = document.createElement('span');
+        labelEl.className = 'analysis-label';
+        labelEl.textContent = label;
+
+        var textEl = document.createElement('div');
+        textEl.className = 'analysis-text';
+        textEl.textContent = value;
+
+        row.appendChild(labelEl);
+        row.appendChild(textEl);
+
+        return row;
+    }
+
+    function displayMajor(major) {
+        return major === 'py' ? 'Python' : major;
+    }
+
+    /** 加入错题集按钮（真实调用后端） */
+    function buildWrongButton(payload) {
+        var bar = document.createElement('div');
+        bar.className = 'tag-row';
+
+        var btn = document.createElement('button');
         btn.type = 'button';
         btn.className = 'wrong-btn';
-        btn.textContent = '📒 加入错题集';
-        btn.addEventListener('click', function() {
+        btn.textContent = '📒 加入错题本';
+
+        btn.addEventListener('click', function () {
             btn.disabled = true;
-            btn.textContent = '正在加入...';
+            btn.textContent = '正在加入…';
+
             fetch('/api/wrong_questions', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'same-origin',
-                body: JSON.stringify({
-                    question: question || '',
-                    answer: answer || '',
-                    image_url: imageUrl || '',
-                    major: classification.major,
-                    sub: classification.sub || []
+                body: JSON.stringify(payload)
+            })
+                .then(function (res) { return res.json(); })
+                .then(function (data) {
+                    if (data.success) {
+                        btn.textContent = '✅ ' + (data.message || '已加入错题本');
+                        btn.classList.add('done');
+                    } else {
+                        btn.disabled = false;
+                        btn.textContent = '📒 加入错题本';
+                        showToast(data.message || '加入失败，请重试');
+                    }
                 })
-            })
-            .then(res => res.json())
-            .then(data => {
-                if (data.success) {
-                    btn.textContent = '✅ ' + (data.message || '已加入错题集');
-                    btn.classList.add('done');
-                } else {
+                .catch(function () {
                     btn.disabled = false;
-                    btn.textContent = '❌ ' + (data.message || '加入失败');
-                }
-            })
-            .catch(() => {
-                btn.disabled = false;
-                btn.textContent = '❌ 加入失败，请重试';
-            });
+                    btn.textContent = '📒 加入错题本';
+                    showToast('网络错误，加入错题本失败');
+                });
         });
-        box.appendChild(btn);
 
-        container.appendChild(box);
-        container.scrollTop = container.scrollHeight;
+        bar.appendChild(btn);
+
+        return bar;
     }
 
-    function displayMajorName(major) {
-        return major === 'py' ? 'Python' : major;
+    // ======================== 会话列表 ========================
+
+    function loadConversationList() {
+        fetch('/api/conversations', {
+            method: 'GET',
+            credentials: 'same-origin'
+        })
+            .then(function (res) {
+                if (!res.ok) {
+                    throw new Error('HTTP ' + res.status);
+                }
+                return res.json();
+            })
+            .then(function (data) {
+                if (!data.success) {
+                    throw new Error(data.message || '读取失败');
+                }
+
+                conversations = data.data || [];
+                renderConversationList(conversations);
+            })
+            .catch(function (error) {
+                // 接口失败时给出真实错误与重试入口，不用假数据填充
+                conversationListEl.innerHTML = '';
+
+                var box = document.createElement('div');
+                box.className = 'sidebar-error';
+                box.textContent = '历史对话加载失败：' + error.message;
+
+                var retry = document.createElement('button');
+                retry.type = 'button';
+                retry.className = 'sidebar-retry';
+                retry.textContent = '重试';
+                retry.addEventListener('click', loadConversationList);
+
+                box.appendChild(retry);
+                conversationListEl.appendChild(box);
+            });
     }
 
-    function showToast(msg) {
-        // 简单提示，可自行替换为好看的 toast
-        alert(msg);
+    function renderConversationList(list) {
+        var keyword = (searchInput && searchInput.value || '').trim().toLowerCase();
+
+        var filtered = list.filter(function (conv) {
+            if (!keyword) {
+                return true;
+            }
+
+            return (conv.title || '').toLowerCase().indexOf(keyword) !== -1
+                || (conv.preview || '').toLowerCase().indexOf(keyword) !== -1;
+        });
+
+        conversationListEl.innerHTML = '';
+
+        if (!list.length) {
+            var empty = document.createElement('div');
+            empty.className = 'sidebar-empty';
+            empty.textContent = '还没有历史对话，提问后会自动保存到这里';
+            conversationListEl.appendChild(empty);
+            return;
+        }
+
+        if (!filtered.length) {
+            var noMatch = document.createElement('div');
+            noMatch.className = 'sidebar-empty';
+            noMatch.textContent = '没有匹配「' + keyword + '」的对话';
+            conversationListEl.appendChild(noMatch);
+            return;
+        }
+
+        filtered.forEach(function (conv) {
+            var item = document.createElement('div');
+            item.className = 'chat-sidebar-item conversation';
+            item.dataset.id = conv.id;
+
+            if (currentConversationId === conv.id) {
+                item.classList.add('active');
+            }
+
+            var titleRow = document.createElement('div');
+            titleRow.className = 'conv-title-row';
+
+            var title = document.createElement('span');
+            title.className = 'conv-title';
+            title.textContent = conv.title || '新对话';
+            titleRow.appendChild(title);
+
+            if (conv.major) {
+                var tag = document.createElement('span');
+                tag.className = 'conv-major';
+                tag.textContent = displayMajor(conv.major);
+                titleRow.appendChild(tag);
+            }
+
+            var tools = document.createElement('span');
+            tools.className = 'conv-tools';
+
+            var renameBtn = document.createElement('button');
+            renameBtn.type = 'button';
+            renameBtn.className = 'conv-tool';
+            renameBtn.title = '重命名';
+            renameBtn.textContent = '✏️';
+            renameBtn.addEventListener('click', function (event) {
+                event.stopPropagation();
+                renameConversation(conv.id, conv.title);
+            });
+
+            var deleteBtn = document.createElement('button');
+            deleteBtn.type = 'button';
+            deleteBtn.className = 'conv-tool danger';
+            deleteBtn.title = '删除对话';
+            deleteBtn.textContent = '🗑';
+            deleteBtn.addEventListener('click', function (event) {
+                event.stopPropagation();
+                deleteConversation(conv.id, conv.title);
+            });
+
+            tools.appendChild(renameBtn);
+            tools.appendChild(deleteBtn);
+            titleRow.appendChild(tools);
+
+            var preview = document.createElement('span');
+            preview.className = 'conv-preview';
+            preview.textContent = conv.preview || '（暂无内容）';
+
+            item.appendChild(titleRow);
+            item.appendChild(preview);
+
+            item.addEventListener('click', function () {
+                loadConversationDetail(conv.id);
+            });
+
+            conversationListEl.appendChild(item);
+        });
     }
 
-    // ======================== 图片上传/预览 ========================
-    // 点击 + 号 -> 触发本地文件选择
-    attachBtn.addEventListener('click', function() {
+    // ======================== 会话切换 / 新建 / 删除 ========================
+
+    function setActiveConversation(id) {
+        currentConversationId = id;
+
+        document.querySelectorAll('.conversation').forEach(function (el) {
+            el.classList.toggle('active', Number(el.dataset.id) === id);
+        });
+
+        updateConversationUrl(id);
+    }
+
+    function updateConversationUrl(id) {
+        if (!window.history || !window.history.pushState) {
+            return;
+        }
+
+        var params = new URLSearchParams();
+
+        if (initialImageUrl) {
+            params.set('img', initialImageUrl);
+        }
+
+        if (id) {
+            params.set('conv', id);
+        }
+
+        var query = params.toString();
+
+        window.history.pushState(
+            {},
+            '',
+            window.location.pathname + (query ? '?' + query : '')
+        );
+    }
+
+    function loadConversationDetail(id) {
+        streamToken += 1;
+        resetSendButton();
+
+        container.innerHTML = '';
+        setActiveConversation(id);
+
+        fetch('/api/conversations/' + id, {
+            method: 'GET',
+            credentials: 'same-origin'
+        })
+            .then(function (res) {
+                return res.json().then(function (data) {
+                    return { ok: res.ok, data: data };
+                });
+            })
+            .then(function (result) {
+                if (!result.ok || !result.data.success) {
+                    throw new Error(result.data.message || '读取失败');
+                }
+
+                var history = (result.data.data && result.data.data.messages) || [];
+
+                if (!history.length) {
+                    addSystemHint('该对话暂无消息，开始提问吧');
+                    return;
+                }
+
+                var lastAnalysis = null;
+
+                history.forEach(function (msg) {
+                    if (msg.role === 'user') {
+                        lastAnalysis = msg.analysis || null;
+                        addMessage('user', msg.content, msg.image_url || '');
+                        return;
+                    }
+
+                    if (msg.role === 'assistant') {
+                        addMessage('assistant', msg.content, '', {
+                            plain: msg.reply_plain || '',
+                            analysis: lastAnalysis
+                        });
+                    }
+                });
+
+                scrollToBottom();
+            })
+            .catch(function (error) {
+                // 加载失败时明确报错并允许重试，不展示演示数据
+                container.innerHTML = '';
+
+                var notice = document.createElement('div');
+                notice.className = 'il-notice il-notice-error';
+                notice.textContent = '对话加载失败：' + error.message;
+
+                var retry = document.createElement('button');
+                retry.type = 'button';
+                retry.className = 'il-retry';
+                retry.textContent = '重试';
+                retry.addEventListener('click', function () {
+                    loadConversationDetail(id);
+                });
+
+                notice.appendChild(retry);
+                container.appendChild(notice);
+            });
+    }
+
+    function startNewChat() {
+        streamToken += 1;
+        resetSendButton();
+
+        container.innerHTML = '';
+        currentConversationId = null;
+
+        document.querySelectorAll('.conversation').forEach(function (el) {
+            el.classList.remove('active');
+        });
+
+        updateConversationUrl(null);
+
+        addSystemHint('新对话已开启，可以输入题目文字，或点击左下角「+」上传题目/作答照片');
+    }
+
+    function deleteConversation(id, title) {
+        var confirmed = window.confirm(
+            '确定要删除对话「' + (title || '新对话') + '」吗？\n删除后该对话不再出现在历史列表中。'
+        );
+
+        if (!confirmed) {
+            return;
+        }
+
+        fetch('/api/conversations/' + id, {
+            method: 'DELETE',
+            credentials: 'same-origin'
+        })
+            .then(function (res) { return res.json(); })
+            .then(function (data) {
+                if (!data.success) {
+                    showToast(data.message || '删除失败');
+                    return;
+                }
+
+                if (currentConversationId === id) {
+                    startNewChat();
+                }
+
+                loadConversationList();
+                showToast('对话已删除');
+            })
+            .catch(function () {
+                showToast('网络错误，删除失败');
+            });
+    }
+
+    function renameConversation(id, oldTitle) {
+        var title = window.prompt('输入新的对话名称：', oldTitle || '新对话');
+
+        if (title === null) {
+            return;
+        }
+
+        title = title.trim();
+
+        if (!title) {
+            showToast('名称不能为空');
+            return;
+        }
+
+        fetch('/api/conversations/' + id, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'same-origin',
+            body: JSON.stringify({ title: title })
+        })
+            .then(function (res) { return res.json(); })
+            .then(function (data) {
+                if (!data.success) {
+                    showToast(data.message || '重命名失败');
+                    return;
+                }
+
+                loadConversationList();
+                showToast('已重命名');
+            })
+            .catch(function () {
+                showToast('网络错误，重命名失败');
+            });
+    }
+
+    // ======================== 图片上传 ========================
+
+    attachBtn.addEventListener('click', function () {
         imageInput.click();
     });
 
-    // 选择文件后：校验类型/大小，并本地预览
-    imageInput.addEventListener('change', function() {
-        const file = this.files[0];
-        if (!file) return;
+    imageInput.addEventListener('change', function () {
+        var file = this.files[0];
 
-        if (!file.type.startsWith('image/')) {
-            showToast('请选择图片文件（jpg / png 等）');
+        if (!file) {
+            return;
+        }
+
+        if (!file.type || file.type.indexOf('image/') !== 0) {
+            showToast('请选择图片文件（jpg / png / gif / webp）');
             this.value = '';
             return;
         }
-        const MAX_SIZE = 5 * 1024 * 1024;
-        if (file.size > MAX_SIZE) {
+
+        var maxSize = 5 * 1024 * 1024;
+
+        if (file.size > maxSize) {
             showToast('图片大小不能超过 5MB');
             this.value = '';
             return;
         }
 
         pendingImageFile = file;
-        const reader = new FileReader();
-        reader.onload = function(ev) {
-            pendingImageUrl = ev.target.result;
+
+        var reader = new FileReader();
+
+        reader.onload = function (event) {
+            pendingImageUrl = event.target.result;
             previewImage.src = pendingImageUrl;
             imagePreviewBar.style.display = 'flex';
         };
+
         reader.readAsDataURL(file);
-        this.value = ''; // 允许再次选择同一文件
+        this.value = '';
     });
 
-    // 删除预览图片
-    removeImageBtn.addEventListener('click', function() {
+    removeImageBtn.addEventListener('click', function () {
         pendingImageFile = null;
         pendingImageUrl = '';
         previewImage.src = '';
         imagePreviewBar.style.display = 'none';
     });
 
-    // 上传图片并返回 image_url（供发送时使用）
     function uploadImage(file) {
-        return new Promise((resolve, reject) => {
-            const formData = new FormData();
+        return new Promise(function (resolve, reject) {
+            var formData = new FormData();
             formData.append('image', file);
+
             fetch('/api/upload_image', {
                 method: 'POST',
                 body: formData,
                 credentials: 'same-origin'
             })
-            .then(res => res.json())
-            .then(data => {
-                if (data.success && data.image_url) {
-                    resolve(data.image_url);
-                } else {
-                    reject(data.message || '图片上传失败');
-                }
-            })
-            .catch(() => reject('网络错误，图片上传失败'));
+                .then(function (res) { return res.json(); })
+                .then(function (data) {
+                    if (data.success && data.image_url) {
+                        resolve(data.image_url);
+                    } else {
+                        reject(data.message || '图片上传失败');
+                    }
+                })
+                .catch(function () {
+                    reject('网络错误，图片上传失败');
+                });
         });
     }
 
-    // ======================== 接口1：获取对话列表（侧边栏渲染） ========================
-    function loadConversationList() {
-        fetch('/api/conversations', {
-            method: 'GET',
-            credentials: 'same-origin' // 携带 session cookie
-        })
-        .then(res => {
-            if (!res.ok) throw new Error('接口未就绪');
-            return res.json();
-        })
-        .then(data => {
-            if (data.success) {
-                renderConversationList(data.data);
-            } else {
-                renderConversationList([]);
-            }
-        })
-        .catch(() => {
-            renderConversationList([]);
-        });
+    // ======================== 发送消息 ========================
+
+    function resetSendButton() {
+        isSending = false;
+        sendBtn.disabled = false;
+        sendBtn.textContent = '发送';
     }
 
-    function renderConversationList(convs) {
-        conversationListEl.innerHTML = '';
-        if (!convs || convs.length === 0) {
-            const empty = document.createElement('div');
-            empty.className = 'chat-sidebar-item conversation';
-            empty.style.color = '#94a3b8';
-            empty.style.fontSize = '13px';
-            empty.textContent = '暂无历史对话，提问后会自动生成';
-            conversationListEl.appendChild(empty);
+    function setSending(text) {
+        isSending = true;
+        sendBtn.disabled = true;
+        sendBtn.textContent = text;
+    }
+
+    /**
+     * 发送一轮消息。
+     * options.retry 为 true 时不重复追加用户气泡（重试上一次失败的消息）。
+     */
+    function sendMessage(text, options) {
+        options = options || {};
+
+        if (isSending) {
             return;
         }
-        convs.forEach(conv => {
-            const div = document.createElement('div');
-            div.className = 'chat-sidebar-item conversation';
-            div.dataset.id = conv.id;
-            // 高亮当前选中的对话
-            if (currentConversationId === conv.id) {
-                div.classList.add('active');
-            }
-            div.innerHTML = `
-                <span class="conv-title">${escapeHtml(conv.title)}</span>
-                <span class="conv-preview">${escapeHtml(conv.preview || '')}</span>
-            `;
-            // 绑定点击事件（加载历史消息）
-            div.addEventListener('click', function() {
-                loadConversationDetail(conv.id);
-            });
-            conversationListEl.appendChild(div);
-        });
-    }
 
-    // ======================== 接口2：加载指定对话的历史消息 ========================
-    function loadConversationDetail(id) {
-        // 若上一次回答还在流式输出，切走会话后不再让它写回页面
-        streamToken++;
-        resetSendButton();
+        var imageToSend = pendingImageUrl || initialImageUrl || '';
 
-        // 高亮切换
-        document.querySelectorAll('.conversation').forEach(el => el.classList.remove('active'));
-        const target = document.querySelector(`.conversation[data-id="${id}"]`);
-        if (target) target.classList.add('active');
+        if (pendingImageFile) {
+            setSending('上传中…');
 
-        currentConversationId = id;
-        // 更新 URL 参数（便于刷新保留状态）
-        if (window.history && window.history.pushState) {
-            const params = new URLSearchParams();
-            if (imageUrl) params.set('img', imageUrl);
-            params.set('conv', id);
-            window.history.pushState({}, '', window.location.pathname + '?' + params.toString());
+            uploadImage(pendingImageFile)
+                .then(function (url) {
+                    pendingImageFile = null;
+                    pendingImageUrl = '';
+                    previewImage.src = '';
+                    imagePreviewBar.style.display = 'none';
+                    doSend(text, url, options);
+                })
+                .catch(function (error) {
+                    resetSendButton();
+                    addMessage('assistant', '', '', {});
+                    var notice = document.createElement('div');
+                    notice.className = 'il-notice il-notice-error';
+                    notice.textContent = String(error);
+                    container.appendChild(notice);
+                    scrollToBottom();
+                });
+
+            return;
         }
 
-        // 清空当前消息区
-        container.innerHTML = '';
-        messages = [];
-
-        // 请求后端获取历史
-        fetch(`/api/conversations/${id}`, {
-            method: 'GET',
-            credentials: 'same-origin'
-        })
-        .then(res => {
-            if (!res.ok) throw new Error('接口未就绪');
-            return res.json();
-        })
-        .then(data => {
-                if (data.success && data.data && data.data.messages) {
-                const history = data.data.messages;
-                if (history.length === 0) {
-                    addMessage('assistant', '该对话暂无消息，开始提问吧！');
-                } else {
-                    history.forEach(msg => {
-                        addMessage(msg.role, msg.content, msg.image_url || '');
-                        messages.push(msg); // 同步本地上下文
-                    });
-                }
-            } else {
-                // 接口返回空或格式不对，用演示数据占位
-                addMessage('assistant', `已加载对话 ID ${id}（演示数据，请后端实现接口后替换）`);
-                // 给两条模拟消息方便预览
-                addMessage('user', '你好，请问这道题怎么解？');
-                addMessage('assistant', '请把题目发给我看看～');
-            }
-        })
-        .catch(() => {
-            // 接口未实现，用模拟数据
-            addMessage('assistant', `已加载对话 ID ${id}（接口未实现，当前为本地演示数据）`);
-            addMessage('user', '示例问题：什么是人工智能？');
-            addMessage('assistant', '人工智能是研究、开发用于模拟、延伸和扩展人类智能的理论...');
-        });
+        doSend(text, imageToSend, options);
     }
 
-    // ======================== 接口3：发送消息（核心） ========================
-    async function sendMessage(text) {
-        // 优先使用用户刚选择的图片；若未选择则回退到 URL 参数携带的图片
-        let imageToSend = pendingImageUrl || imageUrl || '';
+    function doSend(text, imageUrl, options) {
+        var trimmed = (text || '').trim();
 
-        // 若用户选择的是本地文件，需要先上传得到可用的服务器 URL
-        if (pendingImageFile) {
-            sendBtn.disabled = true;
-            sendBtn.textContent = '上传中...';
-            try {
-                imageToSend = await uploadImage(pendingImageFile);
-            } catch (e) {
-                resetSendButton();
-                addMessage('assistant', '❌ ' + (e || '图片上传失败'));
+        if (!trimmed && !imageUrl) {
+            return;
+        }
+
+        var question = trimmed || '请分析这张图片';
+
+        lastRequest = { text: trimmed, imageUrl: imageUrl };
+
+        if (!options.retry) {
+            // 只发图片时界面不显示"请分析这张图片"这句占位文字
+            addMessage('user', trimmed, imageUrl);
+        }
+
+        setSending('发送中…');
+
+        var myToken = ++streamToken;
+        var bubble = addMessage('assistant', '', '', {});
+        var contentEl = bubble.querySelector('.il-content');
+
+        var stageEl = document.createElement('div');
+        stageEl.className = 'il-notice il-notice-info';
+        stageEl.textContent = '正在处理…';
+        bubble.insertBefore(stageEl, contentEl);
+
+        var streamedText = '';
+        var plainText = '';
+        var analysis = null;
+        var doneReceived = false;
+        var errorReceived = false;
+        var renderScheduled = false;
+
+        function clearStage() {
+            if (stageEl && stageEl.parentNode) {
+                stageEl.parentNode.removeChild(stageEl);
+            }
+            stageEl = null;
+        }
+
+        function scheduleRender() {
+            if (renderScheduled) {
                 return;
             }
+
+            renderScheduled = true;
+
+            window.requestAnimationFrame(function () {
+                renderScheduled = false;
+
+                if (myToken !== streamToken) {
+                    return;
+                }
+
+                renderInto(contentEl, streamedText, {
+                    plain: plainText,
+                    streaming: true
+                });
+
+                var cursor = document.createElement('span');
+                cursor.className = 'il-cursor';
+                contentEl.appendChild(cursor);
+
+                scrollToBottom();
+            });
         }
 
-        if (!text.trim() && !imageToSend) return;
-        const userMsg = text.trim() || '请分析这张图片';
-        messages.push({ role: 'user', content: userMsg });
-        // 只发图片、没有文字时，界面只显示图片，不显示“请分析这张图片”
-        addMessage('user', text.trim() ? userMsg : '', imageToSend);
+        function appendError(message) {
+            clearStage();
 
-        // 发送完成后清除预览，允许继续选择下一张图片
-        pendingImageFile = null;
-        pendingImageUrl = '';
-        previewImage.src = '';
-        imagePreviewBar.style.display = 'none';
+            var notice = document.createElement('div');
+            notice.className = 'il-notice il-notice-error';
+            notice.textContent = '❌ ' + message;
 
-        sendBtn.disabled = true;
-        sendBtn.textContent = '发送中...';
+            var retry = document.createElement('button');
+            retry.type = 'button';
+            retry.className = 'il-retry';
+            retry.textContent = '重试';
+            retry.addEventListener('click', function () {
+                retry.disabled = true;
+                if (lastRequest) {
+                    sendMessage(lastRequest.text, {
+                        retry: true
+                    });
+                }
+            });
 
-        // 记录本次请求令牌；切换会话/新对话后旧请求结果不再写入页面
-        const myToken = ++streamToken;
+            notice.appendChild(retry);
+            bubble.appendChild(notice);
+            scrollToBottom();
+        }
 
-        // AI 思考阶段先显示“正在思考”，首个字输出后自动替换为回答
-        const bubble = addThinkingMessage();
-
-        // 组装请求体，附带当前对话ID（若存在）
-        const payload = {
-            image_url: imageToSend || '',
-            messages: messages
+        var payload = {
+            image_url: imageUrl || '',
+            messages: [{ role: 'user', content: question }]
         };
+
         if (currentConversationId) {
             payload.conversation_id = currentConversationId;
         }
 
-        let response;
+        fetch('/api/chat/stream', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'same-origin',
+            body: JSON.stringify(payload)
+        })
+            .then(function (response) {
+                if (!response.ok) {
+                    return response.json()
+                        .catch(function () { return {}; })
+                        .then(function (data) {
+                            throw new Error(data.message || ('请求失败（HTTP ' + response.status + '）'));
+                        });
+                }
 
-        try {
-            response = await fetch('/api/chat/stream', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'same-origin',
-                body: JSON.stringify(payload)
-            });
-        } catch (err) {
-            if (myToken !== streamToken) return;
-            bubble.innerHTML = renderAssistantContent('❌ 网络错误，请稍后重试。');
-            resetSendButton();
-            container.scrollTop = container.scrollHeight;
-            return;
-        }
+                if (!response.body) {
+                    throw new Error('当前浏览器不支持流式输出，请更换浏览器后重试');
+                }
 
-        if (!response.ok) {
-            if (myToken !== streamToken) return;
-            let message = '请求失败，请稍后重试。';
-            try {
-                const data = await response.json();
-                message = data.message || message;
-            } catch (e) {
-                // 保持默认提示
-            }
-            bubble.innerHTML = renderAssistantContent('❌ ' + message);
-            resetSendButton();
-            container.scrollTop = container.scrollHeight;
-            return;
-        }
+                var reader = response.body.getReader();
+                var decoder = new TextDecoder('utf-8');
+                var buffer = '';
 
-        if (!response.body) {
-            if (myToken !== streamToken) return;
-            bubble.innerHTML = renderAssistantContent('❌ 当前浏览器不支持流式输出，请稍后重试。');
-            resetSendButton();
-            container.scrollTop = container.scrollHeight;
-            return;
-        }
-
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder('utf-8');
-        let buffer = '';
-        let streamedText = '';
-        let memoryUsed = false;
-        let doneReceived = false;
-        let errorReceived = false;
-        let contentNode = null;
-
-        function renderStreamedBubble() {
-            const prefix = memoryUsed ? '🧠 已参考你最近的提问记录\n\n' : '';
-            bubble.innerHTML = renderAssistantContent(prefix + streamedText);
-            container.scrollTop = container.scrollHeight;
-        }
-
-        // 流式阶段只把新文字追加到气泡里，避免每次都整条重绘
-        function ensureStreamContentNode() {
-            if (contentNode) return contentNode;
-
-            bubble.innerHTML = '';
-            contentNode = document.createElement('div');
-            contentNode.className = 'assistant-stream-text';
-            bubble.appendChild(contentNode);
-
-            if (memoryUsed) {
-                contentNode.appendChild(
-                    document.createTextNode(
-                        '🧠 已参考你最近的提问记录\n\n'
-                    )
-                );
-            }
-
-            return contentNode;
-        }
-
-        // 滚动合并刷新，避免高频滚动影响输入流畅度
-        let scrollTimer = null;
-
-        function scheduleStreamScroll() {
-            if (scrollTimer) return;
-            scrollTimer = setTimeout(function() {
-                scrollTimer = null;
-                if (myToken !== streamToken) return;
-                container.scrollTop = container.scrollHeight;
-            }, 40);
-        }
-
-        function handleStreamEvent(obj) {
-            if (myToken !== streamToken) return;
-
-            switch (obj.type) {
-                case 'start':
-                    memoryUsed = !!obj.memory_used;
-                    break;
-
-                case 'delta':
-                    // 第一个文字到达，自动覆盖“正在思考”提示
-                    streamedText += obj.text || '';
-                    ensureStreamContentNode().appendChild(
-                        document.createTextNode(obj.text || '')
-                    );
-                    scheduleStreamScroll();
-                    break;
-
-                case 'done':
-                    doneReceived = true;
-                    const finalReply = obj.reply || streamedText;
-                    memoryUsed = !!obj.memory_used;
-                    streamedText = finalReply;
-                    if (scrollTimer) {
-                        clearTimeout(scrollTimer);
-                        scrollTimer = null;
-                    }
-                    renderStreamedBubble();
-
-                    messages.push({ role: 'assistant', content: finalReply });
-
-                    if (obj.conversation_id) {
-                        currentConversationId = obj.conversation_id;
-                        updateConversationUrl(currentConversationId);
-                        // 刷新侧边栏列表（新对话会出现）
-                        loadConversationList();
+                function handleEvent(obj) {
+                    if (myToken !== streamToken) {
+                        return;
                     }
 
-                    // 拍图题目：展示分类并允许加入错题集
-                    if (obj.classification) {
-                        addClassificationBlock(
-                            obj.classification,
-                            obj.question || '',
-                            finalReply,
-                            obj.image_url || ''
-                        );
+                    if (obj.type === 'stage') {
+                        if (stageEl) {
+                            stageEl.textContent = obj.message || '正在处理…';
+                        }
+                        return;
                     }
-                    break;
 
-                case 'error':
-                    errorReceived = true;
-                    const errorText = '❌ ' + (
-                        obj.message
-                        || 'AI 服务暂时不可用，请稍后重试'
-                    );
-
-                    if (contentNode) {
-                        contentNode.appendChild(
-                            document.createTextNode('\n\n' + errorText)
-                        );
-                        container.scrollTop = container.scrollHeight;
-                    } else {
-                        bubble.innerHTML = renderAssistantContent(errorText);
-                        container.scrollTop = container.scrollHeight;
+                    if (obj.type === 'analysis') {
+                        analysis = obj.analysis;
+                        return;
                     }
-                    break;
-            }
-        }
 
-        try {
-            while (true) {
+                    if (obj.type === 'notice') {
+                        var notice = document.createElement('div');
+                        notice.className = 'il-notice il-notice-warn';
+                        notice.textContent = '⚠️ ' + (obj.message || '');
+                        bubble.appendChild(notice);
+                        return;
+                    }
+
+                    if (obj.type === 'start') {
+                        var hints = [];
+
+                        if (obj.history_used) {
+                            hints.push('已结合本对话上下文');
+                        }
+
+                        if (obj.memory_used) {
+                            hints.push('已参考你最近的提问记录');
+                        }
+
+                        if (hints.length && stageEl) {
+                            stageEl.textContent = hints.join('，') + '，正在生成讲解…';
+                        }
+
+                        return;
+                    }
+
+                    if (obj.type === 'delta') {
+                        clearStage();
+                        streamedText += obj.text || '';
+                        scheduleRender();
+                        return;
+                    }
+
+                    if (obj.type === 'done') {
+                        doneReceived = true;
+                        clearStage();
+
+                        streamedText = obj.reply || streamedText;
+                        plainText = obj.reply_plain || '';
+                        analysis = obj.analysis || analysis;
+
+                        renderInto(contentEl, streamedText, { plain: plainText });
+
+                        if (analysis) {
+                            bubble.appendChild(buildAnalysisPanel(analysis));
+                        }
+
+                        if (obj.partial) {
+                            var partialNotice = document.createElement('div');
+                            partialNotice.className = 'il-notice il-notice-warn';
+                            partialNotice.textContent = '⚠️ 回答可能未完整生成，可点击「重试」重新提问。';
+                            bubble.appendChild(partialNotice);
+                        }
+
+                        if (analysis && analysis.major && analysis.question_text) {
+                            bubble.appendChild(buildWrongButton({
+                                question: analysis.question_text,
+                                answer: streamedText,
+                                image_url: obj.image_url || '',
+                                major: analysis.major,
+                                sub: analysis.sub || [],
+                                knowledge_points: analysis.knowledge_points || [],
+                                error_types: analysis.error_types || [],
+                                user_answer: analysis.student_work || '',
+                                analysis: analysis.error_analysis || '',
+                                conversation_id: obj.conversation_id || currentConversationId,
+                                message_id: obj.message_id || null
+                            }));
+                        }
+
+                        if (obj.conversation_id) {
+                            setActiveConversation(obj.conversation_id);
+                            loadConversationList();
+                        }
+
+                        scrollToBottom();
+                        return;
+                    }
+
+                    if (obj.type === 'error') {
+                        errorReceived = true;
+                        appendError(obj.message || 'AI 服务暂时不可用，请稍后重试');
+                    }
+                }
+
+                function pump() {
+                    return reader.read().then(function (chunk) {
+                        if (myToken !== streamToken) {
+                            reader.cancel();
+                            return;
+                        }
+
+                        if (chunk.done) {
+                            // 流结束但没有 done/error：保留已生成内容并提示
+                            if (!doneReceived && !errorReceived && streamedText.trim()) {
+                                clearStage();
+                                renderInto(contentEl, streamedText, { plain: plainText });
+                                appendError('回答传输中断，内容可能不完整');
+                            } else if (!doneReceived && !errorReceived) {
+                                appendError('未收到 AI 回复，请重试');
+                            }
+
+                            return;
+                        }
+
+                        buffer += decoder.decode(chunk.value, { stream: true });
+
+                        var newlineIndex;
+
+                        while ((newlineIndex = buffer.indexOf('\n')) !== -1) {
+                            var line = buffer.slice(0, newlineIndex).trim();
+                            buffer = buffer.slice(newlineIndex + 1);
+
+                            if (line.indexOf('data:') !== 0) {
+                                continue;
+                            }
+
+                            var dataText = line.slice(5).trim();
+
+                            if (!dataText) {
+                                continue;
+                            }
+
+                            try {
+                                handleEvent(JSON.parse(dataText));
+                            } catch (error) {
+                                console.error('解析流式数据失败:', error, dataText);
+                            }
+                        }
+
+                        return pump();
+                    });
+                }
+
+                return pump();
+            })
+            .catch(function (error) {
                 if (myToken !== streamToken) {
-                    reader.cancel();
                     return;
                 }
 
-                const chunk = await reader.read();
-
-                if (myToken !== streamToken) {
-                    reader.cancel();
-                    return;
-                }
-
-                if (chunk.done) break;
-
-                buffer += decoder.decode(chunk.value, { stream: true });
-
-                // 逐行解析后端推送的 SSE data
-                let newlineIndex;
-
-                while ((newlineIndex = buffer.indexOf('\n')) !== -1) {
-                    const line = buffer.slice(0, newlineIndex).trim();
-                    buffer = buffer.slice(newlineIndex + 1);
-
-                    if (!line.startsWith('data:')) continue;
-
-                    const dataText = line.slice(5).trim();
-
-                    if (!dataText) continue;
-
-                    try {
-                        handleStreamEvent(JSON.parse(dataText));
-                    } catch (e) {
-                        console.error('解析流式数据失败:', e);
-                    }
-                }
-            }
-        } catch (err) {
-            if (myToken !== streamToken) return;
-            console.error(err);
-
-            if (!doneReceived && !errorReceived) {
                 errorReceived = true;
-                const errorText = '❌ 网络中断，回答未完整接收，请重试。';
-
-                if (contentNode) {
-                    contentNode.appendChild(
-                        document.createTextNode('\n\n' + errorText)
-                    );
-                } else {
-                    bubble.innerHTML = renderAssistantContent(errorText);
+                appendError(error.message || '网络错误，请稍后重试');
+            })
+            .then(function () {
+                if (myToken === streamToken) {
+                    resetSendButton();
                 }
-                container.scrollTop = container.scrollHeight;
-            }
-        } finally {
-            if (myToken === streamToken) {
-                resetSendButton();
-            }
-        }
-
-        // 流意外关闭且没有收到完成/错误标记时，保留已展示的部分
-        if (
-            myToken === streamToken
-            && !doneReceived
-            && !errorReceived
-            && streamedText.trim()
-        ) {
-            messages.push({ role: 'assistant', content: streamedText });
-        }
-    }
-
-    // ======================== 开启新对话 ========================
-    function startNewChat() {
-        streamToken++;
-        resetSendButton();
-
-        messages = [];
-        container.innerHTML = '';
-        currentConversationId = null;
-        // 清除高亮
-        document.querySelectorAll('.conversation').forEach(el => el.classList.remove('active'));
-        // 清除 URL 中的 conv 参数
-        if (window.history && window.history.pushState) {
-            const params = new URLSearchParams();
-            if (imageUrl) params.set('img', imageUrl);
-            window.history.pushState({}, '', window.location.pathname + (params.toString() ? '?' + params.toString() : ''));
-        }
-        addMessage('assistant', '✨ 新对话已开启，请问有什么可以帮您？');
+            });
     }
 
     // ======================== 初始化 ========================
-    function init() {
-        // 1. 加载对话列表
-        loadConversationList();
 
-        // 2. 根据 URL 参数决定初始内容
-        if (currentConversationId) {
-            // 有 conv 参数，加载指定对话
-            loadConversationDetail(currentConversationId);
-        } else if (imageUrl) {
-            // 有图片，自动分析
-            setTimeout(() => {
-                sendMessage('请分析这张图片');
-            }, 300);
-        } else {
-            // 默认欢迎
-            addMessage('assistant', '👋 欢迎来到对话！您可以上传图片或输入问题。');
+    function init() {
+        if (!R) {
+            console.error('render.js 未加载，公式与 Markdown 将降级为纯文本');
         }
 
-        // 3. 绑定事件
-        document.getElementById('newChatBtn').addEventListener('click', startNewChat);
-
-        document.getElementById('backHomeBtn').addEventListener('click', function() {
-            window.location.href = '/home';
-        });
-
-        sendBtn.addEventListener('click', function() {
-            const text = input.value.trim();
-            // 有文字或有待发送的图片时才发送
-            if (text || pendingImageUrl || imageUrl) {
-                sendMessage(text);
-                input.value = '';
+        // KaTeX 未加载成功时给出明确提示（不静默失败）
+        if (R && !R.hasKatex()) {
+            var warning = document.getElementById('mathLibWarning');
+            if (warning) {
+                warning.classList.add('show');
+                warning.textContent =
+                    '数学公式渲染库未能加载（可能是网络受限），已自动切换为纯文本公式显示。';
             }
+        }
+
+        loadConversationList();
+
+        if (currentConversationId) {
+            loadConversationDetail(currentConversationId);
+        } else if (initialImageUrl) {
+            setTimeout(function () {
+                sendMessage('请分析这张图片');
+            }, 200);
+        } else {
+            addSystemHint(
+                '欢迎使用 AI 答疑。可以输入题目文字，或上传题目/作答照片；'
+                + '如果照片里有你的解题过程，我会一并分析对错与错因。'
+            );
+        }
+
+        document.getElementById('newChatBtn')
+            .addEventListener('click', startNewChat);
+
+        sendBtn.addEventListener('click', function () {
+            var text = input.value;
+
+            if (!text.trim() && !pendingImageUrl && !pendingImageFile && !initialImageUrl) {
+                showToast('请输入问题或选择图片');
+                return;
+            }
+
+            input.value = '';
+            sendMessage(text);
         });
 
-        input.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
+        input.addEventListener('keydown', function (event) {
+            if (event.key === 'Enter' && !event.isComposing) {
+                event.preventDefault();
                 sendBtn.click();
             }
         });
+
+        if (searchInput) {
+            searchInput.addEventListener('input', function () {
+                renderConversationList(conversations);
+            });
+        }
     }
 
-    // 页面加载完成后初始化
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', init);
     } else {

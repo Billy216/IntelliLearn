@@ -1,0 +1,786 @@
+/* ============================================================
+   个性化练习与复习卷 - practice.css
+   视觉语言与 exam.css / errors_register.css 保持一致
+   ============================================================ */
+
+/* 覆盖 home.css 的 .content：练习页需要纵向滚动 */
+.content {
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: flex-start !important;
+    align-items: stretch !important;
+    width: 100%;
+    height: calc(100vh - 65px);
+    padding: 18px 24px;
+    overflow-y: auto;
+    box-sizing: border-box;
+}
+
+/* ========== 页头 ========== */
+.pr-head {
+    margin-bottom: 14px;
+}
+
+.pr-head h2 {
+    font-size: 22px;
+    color: #1a1a2e;
+}
+
+.pr-head p {
+    font-size: 13px;
+    color: #8a8a9e;
+    margin-top: 4px;
+}
+
+/* ========== 筛选工具条 ========== */
+.pr-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 12px 14px;
+    background: rgba(255, 255, 255, 0.68);
+    backdrop-filter: blur(20px);
+    border-radius: 14px;
+    padding: 14px 18px;
+    box-shadow: 0 2px 12px rgba(158, 98, 193, 0.12);
+    margin-bottom: 14px;
+    flex-shrink: 0;
+}
+
+.pr-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.pr-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #6b6b7f;
+}
+
+.pr-select,
+.pr-input {
+    padding: 8px 12px;
+    border: 1.5px solid rgba(158, 98, 193, 0.4);
+    border-radius: 10px;
+    background: #fff;
+    color: #333;
+    font-size: 13.5px;
+    outline: none;
+    font-family: inherit;
+    transition: border-color 0.2s;
+}
+
+.pr-select {
+    cursor: pointer;
+    min-width: 132px;
+}
+
+.pr-select:focus,
+.pr-input:focus {
+    border-color: #9e62c1;
+}
+
+.pr-count {
+    width: 88px;
+}
+
+.pr-switches {
+    gap: 6px;
+    justify-content: flex-end;
+}
+
+.pr-check {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12.5px;
+    color: #4a4a5e;
+    cursor: pointer;
+    user-select: none;
+}
+
+.pr-check input {
+    accent-color: #9e62c1;
+    cursor: pointer;
+}
+
+.pr-generate-btn {
+    width: auto;
+    padding: 9px 24px;
+    font-size: 15px;
+}
+
+.pr-generate-btn:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.pr-status {
+    flex: 1 1 100%;
+    font-size: 13px;
+    color: #9e62c1;
+    font-weight: 500;
+    min-height: 18px;
+}
+
+/* ========== 提示条 ========== */
+.pr-notices {
+    background: rgba(255, 193, 7, 0.12);
+    border: 1px solid rgba(230, 160, 0, 0.35);
+    border-radius: 12px;
+    padding: 10px 14px;
+    margin-bottom: 14px;
+    font-size: 13px;
+    color: #8a6100;
+    line-height: 1.7;
+}
+
+.pr-notices ul {
+    margin: 0;
+    padding-left: 18px;
+}
+
+/* ========== 通用卡片 ========== */
+.pr-card,
+.pr-paper-card {
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(20px);
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(158, 98, 193, 0.1);
+    padding: 16px 20px;
+    margin-bottom: 14px;
+    flex-shrink: 0;
+}
+
+.pr-card-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.pr-card-head h3 {
+    font-size: 15.5px;
+    font-weight: 700;
+    color: #1a1a2e;
+    padding-left: 10px;
+    border-left: 4px solid #9e62c1;
+}
+
+.pr-link-btn {
+    border: none;
+    background: transparent;
+    color: #9e62c1;
+    font-size: 13px;
+    font-family: inherit;
+    cursor: pointer;
+    text-decoration: underline;
+    padding: 2px 4px;
+}
+
+.pr-link-btn:hover {
+    color: #7b3fa0;
+}
+
+/* ========== 统计 ========== */
+.pr-stat-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.pr-stat-box {
+    flex: 1 1 128px;
+    min-width: 118px;
+    background: #fff;
+    border: 1px solid rgba(158, 98, 193, 0.16);
+    border-radius: 12px;
+    padding: 10px 14px;
+}
+
+.pr-stat-box .pr-stat-value {
+    font-size: 21px;
+    font-weight: 700;
+    color: #9e62c1;
+    line-height: 1.3;
+}
+
+.pr-stat-box .pr-stat-label {
+    font-size: 12px;
+    color: #8a8a9e;
+    margin-top: 2px;
+}
+
+.pr-kp-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+    color: #444;
+    padding: 4px 0;
+}
+
+.pr-kp-name {
+    width: 190px;
+    flex-shrink: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.pr-kp-bar {
+    flex: 1;
+    height: 9px;
+    background: rgba(158, 98, 193, 0.14);
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.pr-kp-bar span {
+    display: block;
+    height: 100%;
+    background: linear-gradient(90deg, #9e62c1, #c471ed);
+}
+
+.pr-kp-value {
+    width: 116px;
+    flex-shrink: 0;
+    text-align: right;
+    color: #6b6b7f;
+    font-size: 12.5px;
+}
+
+.pr-sub-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: #1a1a2e;
+    margin: 12px 0 6px;
+}
+
+/* ========== 任务与历史列表 ========== */
+.pr-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    background: #fff;
+    border: 1px solid rgba(158, 98, 193, 0.14);
+    border-radius: 12px;
+    padding: 10px 14px;
+    margin-bottom: 8px;
+}
+
+.pr-row-main {
+    min-width: 0;
+}
+
+.pr-row-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #1a1a2e;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.pr-row-meta {
+    font-size: 12px;
+    color: #8a8a9e;
+    margin-top: 3px;
+}
+
+.pr-row-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.pr-score {
+    font-size: 16px;
+    font-weight: 700;
+    color: #9e62c1;
+}
+
+.pr-score.pr-score-none {
+    font-size: 12.5px;
+    color: #b0b0c0;
+    font-weight: 500;
+}
+
+/* ========== 按钮 ========== */
+.pr-mini-btn {
+    padding: 6px 14px;
+    border: 1.5px solid #9e62c1;
+    border-radius: 10px;
+    background: #fff;
+    color: #9e62c1;
+    font-size: 13px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+
+.pr-mini-btn:hover {
+    background: #9e62c1;
+    color: #fff;
+}
+
+.pr-mini-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.pr-mini-btn.pr-mini-primary {
+    background: #9e62c1;
+    color: #fff;
+}
+
+.pr-mini-btn.pr-mini-primary:hover {
+    background: #7b3fa0;
+}
+
+/* ========== 试卷 ========== */
+.pr-paper-head {
+    border-bottom: 2px solid rgba(158, 98, 193, 0.22);
+    padding-bottom: 10px;
+    margin-bottom: 14px;
+}
+
+.pr-paper-head h2 {
+    font-size: 20px;
+    color: #1a1a2e;
+}
+
+.pr-paper-head p {
+    font-size: 12.5px;
+    color: #8a8a9e;
+    margin-top: 4px;
+}
+
+.pr-questions {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.pr-question {
+    background: #fff;
+    border: 1px solid rgba(158, 98, 193, 0.16);
+    border-radius: 12px;
+    padding: 14px 18px;
+}
+
+.pr-question.correct {
+    border-color: #4CAF50;
+    background: rgba(76, 175, 80, 0.06);
+}
+
+.pr-question.wrong {
+    border-color: #f64f59;
+    background: rgba(246, 79, 89, 0.05);
+}
+
+.pr-question.ungraded {
+    border-color: #f0a500;
+    background: rgba(240, 165, 0, 0.06);
+}
+
+.pr-q-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 7px;
+    margin-bottom: 8px;
+}
+
+.pr-q-no {
+    font-size: 13.5px;
+    font-weight: 700;
+    color: #9e62c1;
+}
+
+.pr-badge {
+    font-size: 11.5px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: rgba(158, 98, 193, 0.12);
+    color: #7b3fa0;
+    white-space: nowrap;
+}
+
+.pr-badge.pr-badge-warn {
+    background: rgba(255, 152, 0, 0.16);
+    color: #a35b00;
+}
+
+.pr-badge.pr-badge-ok {
+    background: rgba(76, 175, 80, 0.14);
+    color: #2e7d32;
+}
+
+.pr-badge.pr-badge-bad {
+    background: rgba(246, 79, 89, 0.14);
+    color: #c62828;
+}
+
+.pr-q-text {
+    font-size: 14.5px;
+    color: #1a1a2e;
+    line-height: 1.75;
+    word-break: break-word;
+    user-select: text;
+}
+
+.pr-q-text p {
+    margin: 0 0 6px;
+}
+
+.pr-options {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 8px;
+}
+
+.pr-option {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    font-size: 14px;
+    color: #333;
+    cursor: pointer;
+    padding: 5px 8px;
+    border-radius: 8px;
+    transition: background 0.2s;
+}
+
+.pr-option:hover {
+    background: rgba(158, 98, 193, 0.07);
+}
+
+.pr-option input {
+    accent-color: #9e62c1;
+    cursor: pointer;
+    margin-top: 4px;
+}
+
+.pr-option.pr-option-correct {
+    color: #2e7d32;
+    font-weight: 600;
+}
+
+.pr-option.pr-option-user-wrong {
+    color: #c62828;
+    font-weight: 600;
+}
+
+.pr-option-text {
+    user-select: text;
+}
+
+.pr-judge {
+    display: flex;
+    gap: 18px;
+    margin-top: 8px;
+}
+
+.pr-fill-input,
+.pr-essay-input {
+    width: 100%;
+    margin-top: 8px;
+    padding: 9px 12px;
+    border: 1.5px solid #d1d5db;
+    border-radius: 10px;
+    font-size: 14px;
+    font-family: inherit;
+    outline: none;
+    box-sizing: border-box;
+    transition: border-color 0.2s;
+}
+
+.pr-essay-input {
+    min-height: 96px;
+    resize: vertical;
+}
+
+.pr-fill-input:focus,
+.pr-essay-input:focus {
+    border-color: #9e62c1;
+}
+
+.pr-hint {
+    font-size: 12px;
+    color: #a0a0b0;
+    margin-top: 4px;
+}
+
+/* ========== 判分反馈 ========== */
+.pr-feedback {
+    margin-top: 10px;
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 13.5px;
+    line-height: 1.75;
+    background: #f8faff;
+    border: 1px solid #eef2f7;
+    user-select: text;
+}
+
+.pr-feedback .pr-fb-title {
+    font-weight: 700;
+    color: #1a1a2e;
+    margin-bottom: 4px;
+    font-size: 13px;
+}
+
+.pr-feedback .pr-fb-block {
+    margin-top: 8px;
+}
+
+.pr-feedback .pr-fb-value {
+    color: #2e7d32;
+    font-weight: 600;
+}
+
+.pr-feedback .pr-fb-user {
+    color: #c62828;
+    font-weight: 600;
+}
+
+.pr-feedback .pr-ai-comment {
+    background: rgba(158, 98, 193, 0.07);
+    border-left: 3px solid #9e62c1;
+    border-radius: 8px;
+    padding: 8px 12px;
+    margin-top: 8px;
+}
+
+.pr-feedback-actions {
+    margin-top: 8px;
+}
+
+/* ========== 底部按钮与小结 ========== */
+.pr-actions {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding-top: 14px;
+    margin-top: 14px;
+    border-top: 1px solid rgba(158, 98, 193, 0.12);
+}
+
+.pr-action-btn {
+    width: auto;
+    padding: 10px 28px;
+    font-size: 15px;
+}
+
+.pr-action-btn:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.pr-summary {
+    margin-top: 14px;
+    background: rgba(158, 98, 193, 0.07);
+    border: 1px solid rgba(158, 98, 193, 0.2);
+    border-radius: 12px;
+    padding: 14px 18px;
+}
+
+.pr-summary .pr-summary-score {
+    font-size: 26px;
+    font-weight: 700;
+    color: #9e62c1;
+}
+
+.pr-summary .pr-summary-line {
+    font-size: 13.5px;
+    color: #4a4a5e;
+    margin-top: 4px;
+    line-height: 1.8;
+}
+
+.pr-wrongbook-actions {
+    display: flex;
+    justify-content: center;
+    margin-top: 14px;
+}
+
+/* ========== 空状态与错误状态 ========== */
+.pr-empty {
+    text-align: center;
+    padding: 26px 16px;
+    color: #aaa;
+}
+
+.pr-empty .pr-empty-icon {
+    font-size: 30px;
+    margin-bottom: 6px;
+}
+
+.pr-empty h4 {
+    font-size: 14.5px;
+    color: #666;
+    margin-bottom: 4px;
+    font-weight: 600;
+}
+
+.pr-empty p {
+    font-size: 12.5px;
+    line-height: 1.7;
+}
+
+.pr-error {
+    background: rgba(246, 79, 89, 0.07);
+    border: 1px solid rgba(246, 79, 89, 0.3);
+    border-radius: 12px;
+    padding: 12px 16px;
+    font-size: 13.5px;
+    color: #c62828;
+    line-height: 1.7;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+}
+
+.pr-error .pr-retry-btn {
+    padding: 5px 14px;
+    border: 1.5px solid #f64f59;
+    border-radius: 10px;
+    background: #fff;
+    color: #f64f59;
+    font-size: 12.5px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+}
+
+.pr-error .pr-retry-btn:hover {
+    background: #f64f59;
+    color: #fff;
+}
+
+/* ========== 共享渲染器降级样式 ========== */
+.math-fallback {
+    font-family: 'Cambria Math', 'Times New Roman', serif;
+    white-space: normal;
+}
+
+.pr-q-text .il-h,
+.pr-feedback .il-h {
+    font-size: 14px;
+    color: #7b3fa0;
+    margin: 6px 0 4px;
+}
+
+.pr-q-text .il-list,
+.pr-feedback .il-list {
+    margin: 4px 0 4px 20px;
+}
+
+.pr-q-text .il-code,
+.pr-feedback .il-code {
+    background: #f4f4f8;
+    border-radius: 8px;
+    padding: 8px 10px;
+    overflow-x: auto;
+    font-size: 12.5px;
+}
+
+/* ========== 响应式 ========== */
+@media (max-width: 768px) {
+    .content {
+        padding: 10px;
+    }
+
+    .pr-toolbar {
+        padding: 10px 12px;
+    }
+
+    .pr-select {
+        min-width: 108px;
+    }
+
+    .pr-kp-name {
+        width: 108px;
+    }
+
+    .pr-kp-value {
+        width: 92px;
+    }
+
+    .pr-row {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}
+
+/* ============================================================
+   打印 / 导出 PDF：只保留试卷与解析
+   ============================================================ */
+@media print {
+    .top_nav,
+    .lf_nav,
+    .pr-toolbar,
+    .pr-notices,
+    .pr-card,
+    .pr-actions,
+    .pr-wrongbook-actions,
+    .pr-link-btn,
+    .pr-mini-btn,
+    .pr-retry-btn {
+        display: none !important;
+    }
+
+    body {
+        background: #fff;
+        user-select: text;
+    }
+
+    .main::before {
+        display: none;
+    }
+
+    .container,
+    .content {
+        display: block !important;
+        height: auto !important;
+        overflow: visible !important;
+        padding: 0 !important;
+    }
+
+    .pr-paper-card {
+        box-shadow: none;
+        border: none;
+        background: #fff;
+        padding: 0;
+        backdrop-filter: none;
+    }
+
+    .pr-head {
+        display: none;
+    }
+
+    .pr-question,
+    .pr-feedback,
+    .pr-summary {
+        break-inside: avoid;
+        page-break-inside: avoid;
+        box-shadow: none;
+    }
+
+    a[href]::after {
+        content: '';
+    }
+}

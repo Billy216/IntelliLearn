@@ -1,0 +1,367 @@
+/* ============================================================
+   IntelliLearn 内容渲染样式
+   供聊天、试卷、练习、教师端等所有展示 AI/富文本的页面复用。
+   ============================================================ */
+
+/* ---------- 富文本正文 ---------- */
+
+.il-content {
+    line-height: 1.85;
+    font-size: 15px;
+    color: #1f2937;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+}
+
+.il-content > *:first-child {
+    margin-top: 0;
+}
+
+.il-content > *:last-child {
+    margin-bottom: 0;
+}
+
+.il-h {
+    margin: 18px 0 8px;
+    font-weight: 700;
+    line-height: 1.4;
+    color: #111827;
+}
+
+h3.il-h {
+    font-size: 18px;
+    padding-left: 10px;
+    border-left: 4px solid #9e62c1;
+}
+
+h4.il-h {
+    font-size: 16px;
+    color: #4c1d95;
+}
+
+h5.il-h,
+h6.il-h {
+    font-size: 15px;
+    color: #4b5563;
+}
+
+.il-content p {
+    margin: 8px 0;
+}
+
+.il-list {
+    margin: 8px 0;
+    padding-left: 22px;
+}
+
+.il-list li {
+    margin: 4px 0;
+}
+
+.il-quote {
+    margin: 10px 0;
+    padding: 8px 14px;
+    border-left: 4px solid #c4b5fd;
+    background: #f5f3ff;
+    border-radius: 0 8px 8px 0;
+    color: #4b5563;
+}
+
+.il-hr {
+    margin: 16px 0;
+    border: none;
+    border-top: 1px dashed #e5e7eb;
+}
+
+.il-inline-code {
+    padding: 2px 6px;
+    background: #f3f4f6;
+    border: 1px solid #e5e7eb;
+    border-radius: 4px;
+    font-family: Consolas, Monaco, 'Courier New', monospace;
+    font-size: 13px;
+    color: #be185d;
+}
+
+.il-code {
+    margin: 10px 0;
+    padding: 12px 14px;
+    background: #1f2937;
+    color: #f9fafb;
+    border-radius: 8px;
+    overflow-x: auto;
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+.il-code code {
+    font-family: Consolas, Monaco, 'Courier New', monospace;
+    white-space: pre;
+}
+
+.il-table-wrap {
+    margin: 10px 0;
+    overflow-x: auto;
+}
+
+.il-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+}
+
+.il-table th,
+.il-table td {
+    padding: 8px 10px;
+    border: 1px solid #e5e7eb;
+    text-align: left;
+}
+
+.il-table th {
+    background: #f9fafb;
+    font-weight: 600;
+}
+
+/* ---------- 数学公式 ---------- */
+
+.il-content .katex {
+    font-size: 1.05em;
+}
+
+.il-content .katex-display {
+    margin: 12px 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 4px 0;
+}
+
+.math-fallback {
+    padding: 0 2px;
+    font-family: 'Cambria Math', Cambria, Georgia, serif;
+    font-style: italic;
+}
+
+.math-error {
+    padding: 1px 4px;
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    border-radius: 4px;
+    color: #b91c1c;
+    font-size: 13px;
+}
+
+/* KaTeX 未加载成功时的提示条 */
+.math-lib-warning {
+    display: none;
+    margin: 0 0 10px;
+    padding: 8px 12px;
+    background: #fffbeb;
+    border: 1px solid #fde68a;
+    border-radius: 8px;
+    color: #92400e;
+    font-size: 13px;
+}
+
+.math-lib-warning.show {
+    display: block;
+}
+
+/* ---------- 识别结果 / 分析信息折叠区 ---------- */
+
+.analysis-panel {
+    margin: 10px 0 0;
+    border: 1px solid #e9d5ff;
+    border-radius: 10px;
+    background: #faf5ff;
+    overflow: hidden;
+}
+
+.analysis-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    cursor: pointer;
+    user-select: none;
+    font-size: 14px;
+    font-weight: 600;
+    color: #6b21a8;
+}
+
+.analysis-head:hover {
+    background: #f3e8ff;
+}
+
+.analysis-head .arrow {
+    margin-left: auto;
+    transition: transform 0.2s;
+    font-size: 12px;
+    color: #a855f7;
+}
+
+.analysis-panel.open .analysis-head .arrow {
+    transform: rotate(90deg);
+}
+
+.analysis-body {
+    display: none;
+    padding: 0 14px 12px;
+    font-size: 14px;
+    color: #374151;
+    border-top: 1px dashed #e9d5ff;
+}
+
+.analysis-panel.open .analysis-body {
+    display: block;
+}
+
+.analysis-row {
+    margin: 8px 0;
+}
+
+.analysis-label {
+    display: inline-block;
+    min-width: 68px;
+    color: #7c3aed;
+    font-weight: 600;
+}
+
+.analysis-text {
+    white-space: pre-wrap;
+    word-break: break-word;
+    background: #fff;
+    border: 1px solid #f3e8ff;
+    border-radius: 8px;
+    padding: 8px 10px;
+    margin-top: 4px;
+    line-height: 1.7;
+}
+
+/* ---------- 标签 ---------- */
+
+.tag-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+    margin: 8px 0;
+}
+
+.tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    line-height: 1.6;
+    white-space: nowrap;
+}
+
+.tag-major {
+    background: #ede9fe;
+    color: #6d28d9;
+    font-weight: 600;
+}
+
+.tag-sub {
+    background: #e0f2fe;
+    color: #0369a1;
+}
+
+.tag-kp {
+    background: #dcfce7;
+    color: #15803d;
+}
+
+.tag-error {
+    background: #fee2e2;
+    color: #b91c1c;
+}
+
+.tag-warn {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.tag-muted {
+    background: #f3f4f6;
+    color: #4b5563;
+}
+
+/* ---------- 状态提示 ---------- */
+
+.il-notice {
+    margin: 10px 0;
+    padding: 9px 12px;
+    border-radius: 8px;
+    font-size: 13.5px;
+    line-height: 1.7;
+}
+
+.il-notice-info {
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    color: #1d4ed8;
+}
+
+.il-notice-warn {
+    background: #fffbeb;
+    border: 1px solid #fde68a;
+    color: #92400e;
+}
+
+.il-notice-error {
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    color: #b91c1c;
+}
+
+.il-retry {
+    margin-left: 10px;
+    padding: 3px 12px;
+    border: 1px solid currentColor;
+    border-radius: 6px;
+    background: transparent;
+    color: inherit;
+    font-size: 13px;
+    cursor: pointer;
+}
+
+.il-retry:hover {
+    background: rgba(0, 0, 0, 0.05);
+}
+
+/* 流式输出光标 */
+.il-cursor {
+    display: inline-block;
+    width: 7px;
+    height: 15px;
+    margin-left: 2px;
+    background: #9e62c1;
+    vertical-align: text-bottom;
+    animation: il-blink 1s steps(2, start) infinite;
+}
+
+@keyframes il-blink {
+    to {
+        visibility: hidden;
+    }
+}
+
+/* ---------- 移动端适配 ---------- */
+
+@media (max-width: 768px) {
+    .il-content {
+        font-size: 14px;
+        line-height: 1.75;
+    }
+
+    .il-table {
+        font-size: 13px;
+    }
+
+    .analysis-label {
+        min-width: 56px;
+    }
+}

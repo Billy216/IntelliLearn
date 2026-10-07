@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>系统管理端 - IntelliLearn</title>
+    <link rel="icon" href="/static/pic/logo.png">
+    <link rel="stylesheet" href="/static/css/home.css">
+    <link rel="stylesheet" href="/static/css/admin.css">
+    <link rel="stylesheet" href="/static/css/render.css">
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css"
+          crossorigin="anonymous">
+</head>
+
+<body data-role="{{ role }}">
+    <div class="main">
+        <div class="top_nav">
+            <a href="/home">
+                <div class="logo">
+                    <img src="/static/pic/logo.png" alt="">
+                    <span>IntelliLearn</span>
+                </div>
+            </a>
+            <nav>
+                <span class="role-badge">{{ role_name }}</span>
+                <img src="{{ avatar_path }}" alt="" class="img">
+                <a href="/user" class="nav-link">{{ real_name }}</a>
+            </nav>
+        </div>
+
+        <div class="container">
+            <div class="lf_nav">
+                <a href="/home">
+                    <div class="nav_item">🏠 工作台</div>
+                </a>
+                <a href="/chat">
+                    <div class="nav_item">💬 AI回答</div>
+                </a>
+                <a href="/exam">
+                    <div class="nav_item">📋 试卷生成</div>
+                </a>
+                <a href="/errors_register">
+                    <div class="nav_item">📒 错题集</div>
+                </a>
+                <a href="/practice">
+                    <div class="nav_item">✍️ 练习复习</div>
+                </a>
+                <a href="/resources">
+                    <div class="nav_item">📚 知识库与资源</div>
+                </a>
+                <a href="/teacher">
+                    <div class="nav_item">🧑‍🏫 教师工作台</div>
+                </a>
+                <a href="/admin">
+                    <div class="active_lf">⚙️ 系统管理端</div>
+                </a>
+            </div>
+
+            <div class="content admin-content">
+                <div class="page-head">
+                    <h1>系统管理端</h1>
+                    <p class="page-sub">
+                        当前登录角色：<strong>{{ role_name }}</strong>。
+                        前端隐藏按钮只是界面优化，所有权限判断都在服务端再次执行。
+                    </p>
+                </div>
+
+                <div class="tabs" id="mainTabs">
+                    <button class="tab-btn active" data-tab="stats">全校统计</button>
+                    <button class="tab-btn" data-tab="users">用户管理</button>
+                    <button class="tab-btn" data-tab="classes">班级与授课关系</button>
+                    <button class="tab-btn" data-tab="courses">课程 / 章节 / 知识点</button>
+                    <button class="tab-btn" data-tab="questions">题库管理</button>
+                    <button class="tab-btn" data-tab="logs">操作日志</button>
+                    <button class="tab-btn" data-tab="system">系统参数与备份</button>
+                </div>
+
+                <!-- ================= 全校统计 ================= -->
+                <section class="tab-panel active" id="panel-stats">
+                    <div class="toolbar">
+                        <button class="btn-primary" id="reloadStatsBtn">刷新统计</button>
+                        <span class="hint">全部数字来自 users / wrong_questions / resources / practice_records 真实聚合。</span>
+                    </div>
+                    <div id="statsStatus" class="status-line"></div>
+                    <div id="statsBody"></div>
+                </section>
+
+                <!-- ================= 用户管理 ================= -->
+                <section class="tab-panel" id="panel-users">
+                    <div class="toolbar wrap">
+                        <label class="field">
+                            <span>关键词</span>
+                            <input type="text" id="uKeyword" placeholder="学号 / 姓名 / 邮箱">
+                        </label>
+                        <label class="field">
+                            <span>角色</span>
+                            <select id="uRole">
+                                <option value="">全部角色</option>
+                                <option value="student">学生</option>
+                                <option value="teacher">教师</option>
+                                <option value="admin">管理员</option>
+                            </select>
+                        </label>
+                        <label class="field">
+                            <span>状态</span>
+                            <select id="uStatus">
+                                <option value="">全部</option>
+                                <option value="1">正常</option>
+                                <option value="0">已冻结</option>
+                            </select>
+                        </label>
+                        <button class="btn-primary" id="searchUsersBtn">查询</button>
+                    </div>
+                    <div id="usersStatus" class="status-line"></div>
+                    <div id="usersBody"></div>
+                    <div class="pager" id="usersPager"></div>
+
+                    <div class="card">
+                        <h3>新建用户</h3>
+                        <div class="form-row">
+                            <label>学号 / 教师号</label>
+                            <input type="text" id="newUserNo" maxlength="20" placeholder="f + 8 位数字 / 自定义账号">
+                        </div>
+                        <div class="form-row">
+                            <label>初始密码</label>
+                            <input type="password" id="newUserPassword" autocomplete="new-password">
+                        </div>
+                        <div class="form-row">
+                            <label>角色</label>
+                            <select id="newUserRole">
+                                <option value="student">学生</option>
+                                <option value="teacher">教师</option>
+                                <option value="admin">管理员</option>
+                            </select>
+                        </div>
+                        <div class="form-row">
+                            <label>姓名</label>
+                            <input type="text" id="newUserRealName" maxlength="50">
+                        </div>
+                        <div class="form-row">
+                            <label>学院</label>
+                            <input type="text" id="newUserCollege" maxlength="100">
+                        </div>
+                        <div class="form-row">
+                            <label>邮箱</label>
+                            <input type="text" id="newUserEmail" maxlength="100">
+                        </div>
+                        <button class="btn-primary" id="createUserBtn">创建用户</button>
+                        <p class="hint" id="createUserResult"></p>
+                    </div>
+                </section>
+
+                <!-- ================= 班级与授课关系 ================= -->
+                <section class="tab-panel" id="panel-classes">
+                    <div class="split">
+                        <div class="card">
+                            <h3>新建班级</h3>
+                            <div class="form-row">
+                                <label>班级名称</label>
+                                <input type="text" id="newClassName" maxlength="100">
+                            </div>
+                            <div class="form-row">
+                                <label>学院</label>
+                                <input type="text" id="newClassCollege" maxlength="100">
+                            </div>
+                            <div class="form-row">
+                                <label>年级</label>
+                                <input type="number" id="newClassYear" min="1900" max="2999" placeholder="2025">
+                            </div>
+                            <div class="form-row">
+                                <label>备注</label>
+                                <input type="text" id="newClassRemark" maxlength="255">
+                            </div>
+                            <button class="btn-primary" id="createClassBtn">创建班级</button>
+                            <p class="hint" id="createClassResult"></p>
+                        </div>
+
+                        <div class="card">
+                            <h3>绑定授课关系（教师 + 课程 + 班级）</h3>
+                            <p class="hint">这是教师端所有数据权限的唯一来源，绑定后教师才能看到对应班级学情。</p>
+                            <div class="form-row">
+                                <label>教师</label>
+                                <select id="tcTeacher"><option value="">加载中…</option></select>
+                            </div>
+                            <div class="form-row">
+                                <label>课程</label>
+                                <select id="tcCourse"><option value="">加载中…</option></select>
+                            </div>
+                            <div class="form-row">
+                                <label>班级</label>
+                                <select id="tcClass"><option value="">加载中…</option></select>
+                            </div>
+                            <div class="form-row">
+                                <label>学期</label>
+                                <input type="text" id="tcTerm" maxlength="30" placeholder="例如：2025-2026-1">
+                            </div>
+                            <button class="btn-primary" id="createTcBtn">建立授课关系</button>
+                            <p class="hint" id="createTcResult"></p>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h3>班级列表</h3>
+                        <div id="classesStatus" class="status-line"></div>
+                        <div id="classesBody"></div>
+                    </div>
+
+                    <div class="card">
+                        <h3>授课关系列表</h3>
+                        <div id="tcStatus" class="status-line"></div>
+                        <div id="tcBody"></div>
+                    </div>
+                </section>
+
+                <!-- ================= 课程 / 章节 / 知识点 ================= -->
+                <section class="tab-panel" id="panel-courses">
+                    <div class="toolbar">
+                        <button class="btn-primary" id="reloadTreeBtn">刷新课程结构</button>
+                        <span class="hint">课程与知识点的新建 / 修改 / 删除由 resource_service 统一处理。</span>
+                    </div>
+                    <div id="treeStatus" class="status-line"></div>
+                    <div id="treeBody"></div>
+
+                    <div class="split">
+                        <div class="card">
+                            <h3>新建章节</h3>
+                            <div class="form-row">
+                                <label>课程</label>
+                                <select id="chapCourse"><option value="">加载中…</option></select>
+                            </div>
+                            <div class="form-row">
+                                <label>章节名称</label>
+                                <input type="text" id="chapName" maxlength="150">
+                            </div>
+                            <div class="form-row">
+                                <label>排序</label>
+                                <input type="number" id="chapSort" value="1">
+                            </div>
+                            <button class="btn-primary" id="createChapterBtn">创建章节</button>
+                            <p class="hint" id="chapterResult"></p>
+                        </div>
+
+                        <div class="card">
+                            <h3>新建知识点</h3>
+                            <div class="form-row">
+                                <label>课程</label>
+                                <select id="kpCourse"><option value="">加载中…</option></select>
+                            </div>
+                            <div class="form-row">
+                                <label>章节（可选）</label>
+                                <select id="kpChapter"><option value="">不指定</option></select>
+                            </div>
+                            <div class="form-row">
+                                <label>知识点名称</label>
+                                <input type="text" id="kpName" maxlength="150">
+                            </div>
+                            <div class="form-row">
+                                <label>难度</label>
+                                <select id="kpDifficulty">
+                                    <option value="1">简单</option>
+                                    <option value="2" selected>中等</option>
+                                    <option value="3">困难</option>
+                                </select>
+                            </div>
+                            <div class="form-row">
+                                <label>考频权重</label>
+                                <input type="number" id="kpWeight" step="0.1" min="0" max="99">
+                            </div>
+                            <button class="btn-primary" id="createKpBtn">创建知识点</button>
+                            <p class="hint" id="kpResult"></p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ================= 题库管理 ================= -->
+                <section class="tab-panel" id="panel-questions">
+                    <div class="toolbar wrap">
+                        <label class="field">
+                            <span>关键词</span>
+                            <input type="text" id="qKeyword" placeholder="题干 / 知识点">
+                        </label>
+                        <label class="field">
+                            <span>题型</span>
+                            <select id="qType">
+                                <option value="">全部题型</option>
+                                <option value="judge">判断题</option>
+                                <option value="choice">选择题</option>
+                                <option value="fill">填空题</option>
+                                <option value="essay">解答题</option>
+                            </select>
+                        </label>
+                        <label class="field">
+                            <span>审核状态</span>
+                            <select id="qVerified">
+                                <option value="">全部</option>
+                                <option value="1">已审核</option>
+                                <option value="0">未审核</option>
+                            </select>
+                        </label>
+                        <button class="btn-primary" id="searchQuestionsBtn">查询</button>
+                    </div>
+                    <div id="questionsStatus" class="status-line"></div>
+                    <div id="questionsBody"></div>
+                    <div class="pager" id="questionsPager"></div>
+
+                    <div class="card">
+                        <h3>新增题目</h3>
+                        <div class="form-row">
+                            <label>课程 ID</label>
+                            <input type="number" id="qCourse" min="1">
+                        </div>
+                        <div class="form-row">
+                            <label>学科</label>
+                            <input type="text" id="qMajor" maxlength="50">
+                        </div>
+                        <div class="form-row">
+                            <label>知识点</label>
+                            <input type="text" id="qKp" maxlength="150">
+                        </div>
+                        <div class="form-row">
+                            <label>题型</label>
+                            <select id="qNewType">
+                                <option value="choice">选择题</option>
+                                <option value="judge">判断题</option>
+                                <option value="fill">填空题</option>
+                                <option value="essay">解答题</option>
+                            </select>
+                        </div>
+                        <div class="form-row">
+                            <label>难度</label>
+                            <select id="qDifficulty">
+                                <option value="1">简单</option>
+                                <option value="2" selected>中等</option>
+                                <option value="3">困难</option>
+                            </select>
+                        </div>
+                        <div class="form-row">
+                            <label>题干</label>
+                            <textarea id="qQuestion" rows="3"></textarea>
+                        </div>
+                        <div class="form-row">
+                            <label>选项 JSON（可留空）</label>
+                            <input type="text" id="qOptions" placeholder='["A. ...","B. ..."]'>
+                        </div>
+                        <div class="form-row">
+                            <label>答案</label>
+                            <textarea id="qAnswer" rows="2"></textarea>
+                        </div>
+                        <div class="form-row">
+                            <label>解析</label>
+                            <textarea id="qAnalysis" rows="3"></textarea>
+                        </div>
+                        <div class="form-row inline">
+                            <label><input type="checkbox" id="qNewVerified" checked> 创建后直接标记为已审核</label>
+                        </div>
+                        <button class="btn-primary" id="createQuestionBtn">创建题目</button>
+                        <p class="hint" id="createQuestionResult"></p>
+                    </div>
+                </section>
+
+                <!-- ================= 操作日志 ================= -->
+                <section class="tab-panel" id="panel-logs">
+                    <div class="toolbar wrap">
+                        <label class="field">
+                            <span>用户 ID</span>
+                            <input type="number" id="logUserId" min="1">
+                        </label>
+                        <label class="field">
+                            <span>动作</span>
+                            <input type="text" id="logAction" placeholder="例如：user_update">
+                        </label>
+                        <label class="field">
+                            <span>开始日期</span>
+                            <input type="date" id="logStart">
+                        </label>
+                        <label class="field">
+                            <span>结束日期</span>
+                            <input type="date" id="logEnd">
+                        </label>
+                        <button class="btn-primary" id="searchLogsBtn">查询</button>
+                    </div>
+                    <div id="logsStatus" class="status-line"></div>
+                    <div id="logsBody"></div>
+                    <div class="pager" id="logsPager"></div>
+                </section>
+
+                <!-- ================= 系统参数与备份 ================= -->
+                <section class="tab-panel" id="panel-system">
+                    <div class="card">
+                        <h3>系统参数（非敏感项）</h3>
+                        <p class="hint">
+                            含 key / secret / password / token 的参数名一律被接口拒绝读写，
+                            模型密钥与数据库密码请直接修改服务器上的 .env 文件。
+                        </p>
+                        <div id="settingsStatus" class="status-line"></div>
+                        <div id="settingsBody"></div>
+                        <div class="form-row">
+                            <label>参数名</label>
+                            <input type="text" id="settingKey" maxlength="64" placeholder="例如：ai_model_display">
+                        </div>
+                        <div class="form-row">
+                            <label>参数值</label>
+                            <input type="text" id="settingValue" maxlength="500">
+                        </div>
+                        <div class="form-row">
+                            <label>说明</label>
+                            <input type="text" id="settingDesc" maxlength="200">
+                        </div>
+                        <button class="btn-primary" id="saveSettingBtn">保存参数</button>
+                        <p class="hint" id="settingResult"></p>
+                    </div>
+
+                    <div class="card">
+                        <h3>数据库备份</h3>
+                        <p class="hint">
+                            调用服务器上的 mysqldump，输出到 <code>E:\IntelliLearn\backups\</code>，
+                            数据库密码通过 MYSQL_PWD 环境变量传入，不会出现在命令行里。
+                        </p>
+                        <button class="btn-primary" id="backupBtn">立即备份</button>
+                        <p class="hint" id="backupResult"></p>
+                        <div id="backupsStatus" class="status-line"></div>
+                        <div id="backupsBody"></div>
+                    </div>
+
+                    <div class="card">
+                        <h3>学校统一身份认证（SSO）</h3>
+                        <p class="hint">
+                            该功能<strong>尚未实现</strong>，仅预留配置读取，请不要把它当作可用的登录入口。
+                        </p>
+                        <div id="ssoStatus" class="status-line"></div>
+                        <div id="ssoBody"></div>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"
+            crossorigin="anonymous"></script>
+    <script src="/static/js/render.js"></script>
+    <script src="/static/js/admin.js"></script>
+</body>
+
+</html>

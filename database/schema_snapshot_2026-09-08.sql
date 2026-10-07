@@ -1,0 +1,70 @@
+-- ============================================================
+-- 数据库结构说明（迁移 001 执行后）
+--
+-- 说明：
+--   本文件是结构记录与说明，不是可执行脚本。
+--   可执行的结构快照与备份位于：
+--     backups/schema_snapshot_after_migration001.sql   （mysqldump --no-data 生成，27 张表）
+--     backups/IntelliLearn_test_<时间戳>.sql            （迁移前完整备份）
+--   结构变更请通过 database/migrations/ 下的版本化脚本执行，
+--   不要直接修改本文件。
+-- ============================================================
+
+-- ------------------------------------------------------------
+-- 一、原有表（迁移 001 中仅做非破坏性扩展）
+-- ------------------------------------------------------------
+-- users              用户与角色。role 由 ENUM('student','teacher') 扩展为
+--                    ENUM('student','teacher','admin')
+-- chat_conversations 会话。新增 is_deleted（软删除）、deleted_at、major
+-- chat_messages      消息。content 放宽为 MEDIUMTEXT；
+--                    新增 reply_plain（去 LaTeX 的降级纯文本）、meta_json（结构化识别结果）
+-- ai_memories        AI 记忆（每用户保留最近 5 条，用于跨会话追问）
+-- wrong_questions    错题。新增 course_id、chapter_id、knowledge_points、error_type、
+--                    user_answer、standard_answer、analysis、mastery、
+--                    review_count、last_review_at、conversation_id、message_id、updated_at
+-- exam_papers        AI 生成试卷（exam_json）
+
+-- ------------------------------------------------------------
+-- 二、迁移 001 新增表
+-- ------------------------------------------------------------
+-- 教学组织
+--   classes            班级
+--   class_students     班级学生
+--   courses            课程
+--   chapters           章节
+--   knowledge_points   知识点（parent_id / exam_weight 为知识图谱与权重预留）
+--   teacher_courses    教师授课班级 —— 教师端数据授权范围的唯一依据
+--
+-- 错题与知识点
+--   wrong_question_kps 错题-知识点关联（支持按知识点统计与推荐）
+--
+-- 题库与练习
+--   question_bank      题库（source: ai/teacher/import；verified 标记是否人工校验）
+--   practice_papers    练习/复习卷
+--   practice_items     练习题目（answer_source 标明答案来源，verified 标明是否校验）
+--   practice_records   提交记录（score / graded_count，仅统计可自动判分的题目）
+--   practice_answers   作答明细（is_correct 为 NULL 表示该题需人工或 AI 判定）
+--
+-- 教师端
+--   learning_tasks     复习任务 / 错题讲解通知
+--   task_submissions   任务完成情况
+--   qa_questions       学生提问（转交教师答疑）
+--   qa_replies         答疑回复
+--
+-- 知识库与资源
+--   resources          学习资源（rtype、source、is_demo 标记演示数据）
+--
+-- 运维
+--   operation_logs     操作日志（不含密码/密钥）
+--   system_settings    运行参数（不含密钥）
+--   backup_records     备份记录
+--   schema_migrations  迁移版本记录（由 database/migrate.py 维护）
+
+-- ------------------------------------------------------------
+-- 三、设计约定
+-- ------------------------------------------------------------
+-- 1. 所有"每个用户私有"的数据都带 user_id，服务端查询一律附带 user_id 条件；
+-- 2. 不使用数据库外键（沿用既有风格），关联完整性由服务层保证，并建有对应索引；
+-- 3. AI 生成且未经人工校验的内容必须可通过 answer_source / verified / is_demo 区分；
+-- 4. 时间字段统一 DATETIME，默认 CURRENT_TIMESTAMP，更新时自动维护 updated_at；
+-- 5. 字符集统一 utf8mb4，支持 emoji 与生僻字。

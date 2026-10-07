@@ -3,24 +3,31 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI 对话</title>
+    <title>AI 答疑 - IntelliLearn</title>
     <link rel="icon" href="/static/pic/logo.png">
     <link rel="stylesheet" href="/static/css/home.css">
     <link rel="stylesheet" href="/static/css/chat.css">
+    <link rel="stylesheet" href="/static/css/chat-ui.css">
+    <link rel="stylesheet" href="/static/css/render.css">
+    <!-- 数学公式渲染：KaTeX。加载失败时会自动降级为服务端生成的纯文本，见 render.js -->
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css"
+          crossorigin="anonymous">
 </head>
 <body>
     <div class="main">
-        <!-- 顶部导航（与 home 一致，但去掉“返回主页”链接） -->
+        <!-- 顶部导航 -->
         <div class="top_nav">
             <a href="/home">
                 <div class="logo">
                     <img src="/static/pic/logo.png" alt="">
-                    <span>SAMS</span>
+                    <span>IntelliLearn</span>
                 </div>
             </a>
             <nav>
                 <img src="{{ avatar_path }}" alt="" class="img">
-                <a href="/user" class="nav-link">{{ username }}</a>
+                <a href="/user" class="nav-link">{{ real_name }}</a>
+                <span class="role-badge">{{ role_name }}</span>
             </nav>
         </div>
 
@@ -28,7 +35,6 @@
         <div class="container chat-layout">
             <!-- 侧边栏 -->
             <div class="chat-sidebar">
-                <!-- 开启新对话 -->
                 <div class="chat-sidebar-item new-chat" id="newChatBtn">
                     <svg viewBox="0 0 1024 1024" width="20" height="20" style="margin-right: 8px; fill: currentColor;">
                         <path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64z m192 480H544v160c0 17.7-14.3 32-32 32s-32-14.3-32-32V544H320c-17.7 0-32-14.3-32-32s14.3-32 32-32h160V320c0-17.7 14.3-32 32-32s32 14.3 32 32v160h160c17.7 0 32 14.3 32 32s-14.3 32-32 32z"/>
@@ -36,37 +42,53 @@
                     开启新对话
                 </div>
 
-                <!-- 对话列表 -->
-                <div class="chat-sidebar-list" id="conversationList">
-                    <div class="chat-sidebar-item conversation" data-id="1">
-                        <span class="conv-title">数学问题咨询</span>
-                        <span class="conv-preview">关于微积分的疑问...</span>
-                    </div>
-                    <div class="chat-sidebar-item conversation" data-id="2">
-                        <span class="conv-title">物理作业讨论</span>
-                        <span class="conv-preview">牛顿第二定律应用</span>
-                    </div>
-                    <div class="chat-sidebar-item conversation" data-id="3">
-                        <span class="conv-title">代码调试帮助</span>
-                        <span class="conv-preview">Python 报错排查</span>
-                    </div>
-                    <div class="chat-sidebar-item conversation" data-id="4">
-                        <span class="conv-title">英语作文润色</span>
-                        <span class="conv-preview">学术写作建议</span>
-                    </div>
+                <!-- 历史对话搜索 -->
+                <div class="chat-search">
+                    <input type="text" id="convSearchInput" placeholder="搜索历史对话…" autocomplete="off">
                 </div>
 
-                <!-- 返回主页 -->
-                <div class="chat-sidebar-item back-home" id="backHomeBtn">
-                    <svg viewBox="0 0 1024 1024" width="20" height="20" style="margin-right: 8px; fill: currentColor;">
-                        <path d="M946.56 480.768L533.248 70.656a32 32 0 0 0-44.928 0L75.776 480.768a32 32 0 0 0 44.928 44.928L128 477.44V864c0 17.664 14.336 32 32 32h192c17.664 0 32-14.336 32-32V704c0-17.664 14.336-32 32-32h192c17.664 0 32 14.336 32 32v160c0 17.664 14.336 32 32 32h192c17.664 0 32-14.336 32-32V477.44l7.232 7.232a32 32 0 0 0 44.928-44.928z"/>
-                    </svg>
-                    返回主页
-                </div>
+                <!-- 对话列表（由 chat.js 从 /api/conversations 加载，模板中不预置任何假数据） -->
+                <div class="chat-sidebar-list" id="conversationList"></div>
+
+                <!-- 功能入口 -->
+                <div class="chat-sidebar-section">功能入口</div>
+                <a href="/exam" class="chat-sidebar-item nav-entry">
+                    <span class="entry-icon">📋</span> 试卷生成
+                </a>
+                <a href="/practice" class="chat-sidebar-item nav-entry">
+                    <span class="entry-icon">✍️</span> 练习与复习卷
+                </a>
+                <a href="/errors_register" class="chat-sidebar-item nav-entry">
+                    <span class="entry-icon">📒</span> 我的错题本
+                </a>
+                <a href="/resources" class="chat-sidebar-item nav-entry">
+                    <span class="entry-icon">📚</span> 学习资源
+                </a>
+                {% if role in ['teacher', 'admin'] %}
+                <a href="/teacher" class="chat-sidebar-item nav-entry">
+                    <span class="entry-icon">🎓</span> 教师工作台
+                </a>
+                {% endif %}
+                {% if role == 'admin' %}
+                <a href="/admin" class="chat-sidebar-item nav-entry">
+                    <span class="entry-icon">⚙️</span> 系统管理
+                </a>
+                {% endif %}
+
+                <!-- 个人信息 -->
+                <a href="/user" class="chat-sidebar-item nav-entry user-entry">
+                    <img src="{{ avatar_path }}" alt="" class="entry-avatar">
+                    <span class="entry-name">{{ real_name }}</span>
+                    <span class="entry-role">{{ role_name }}</span>
+                </a>
             </div>
 
             <!-- 聊天区域 -->
             <div class="chat-container">
+                <div class="math-lib-warning" id="mathLibWarning">
+                    数学公式渲染库未能加载（可能是网络受限），已自动切换为纯文本公式显示。
+                </div>
+
                 <div class="messages" id="messagesContainer"></div>
 
                 <!-- 图片预览区（位于输入框上方，选中图片后显示） -->
@@ -79,7 +101,7 @@
 
                 <div class="input-area">
                     <button type="button" id="attachBtn" class="btn-attach" title="选择图片">+</button>
-                    <input type="text" id="messageInput" placeholder="输入消息..." />
+                    <input type="text" id="messageInput" placeholder="输入题目或追问，也可以直接上传题目/作答照片…" autocomplete="off" />
                     <button id="sendBtn" class="btn-upload">发送</button>
                 </div>
                 <input type="file" id="imageInput" accept="image/*" style="display:none;" />
@@ -87,6 +109,10 @@
         </div>
     </div>
 
+    <!-- KaTeX 主体：先于 render.js 加载；失败不影响页面其它功能 -->
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"
+            crossorigin="anonymous"></script>
+    <script src="/static/js/render.js"></script>
     <script src="/static/js/chat.js"></script>
 </body>
 </html>

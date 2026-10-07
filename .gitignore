@@ -15,4 +15,11 @@ uploads/problems/*
 static/avatars/
 static/uploads/
 
+# 运行日志与数据库备份（不得提交）
+logs/
+backups/
+
+# 临时调试脚本
+.tmp_*.py
+
 appOld.py
